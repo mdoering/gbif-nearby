@@ -47,3 +47,7 @@ GBIFNearby.xcodeproj/
 
 # Claude Code
 .claude/settings.local.json
+
+# Local build/test logs
+test-output.log
+test_output.log

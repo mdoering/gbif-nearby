@@ -204,7 +204,9 @@ git commit -m "chore: add XcodeGen project spec and Makefile"
 - Create: `GBIFNearby/Resources/Assets.xcassets/Contents.json`
 - Create: `GBIFNearby/Resources/Assets.xcassets/AppIcon.appiconset/Contents.json`
 - Create: `GBIFNearby/Resources/Assets.xcassets/AccentColor.colorset/Contents.json`
+- Create: `GBIFNearbyTests/Info.plist` (required by XcodeGen unit-test bundle for code signing)
 - Create: `GBIFNearbyTests/SmokeTest.swift`
+- Modify: `project.yml` — add `info: { path: GBIFNearbyTests/Info.plist }` to `GBIFNearbyTests` target
 
 - [ ] **Step 1: Create the app entry point**
 
