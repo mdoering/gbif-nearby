@@ -9,7 +9,7 @@ struct RootTabView: View {
             MapTabView()
                 .tabItem { Label("Map", systemImage: "map") }
                 .tag(Tab.map)
-            placeholder("Species")
+            SpeciesTabView()
                 .tabItem { Label("Species", systemImage: "leaf") }
                 .tag(Tab.species)
             placeholder("Gallery")
