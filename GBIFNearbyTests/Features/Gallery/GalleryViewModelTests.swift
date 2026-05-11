@@ -25,7 +25,7 @@ struct GalleryViewModelTests {
             #expect(q.lat == 52.5)
             #expect(q.lng == 13.4)
             #expect(q.radiusKm == 5.0)
-            #expect(q.kingdomKey == 1)
+            #expect(q.taxonKey == 1)
             #expect(q.mediaType == "StillImage")
             #expect(q.hasCoordinate == true)
             #expect(q.limit == 50)
@@ -40,7 +40,7 @@ struct GalleryViewModelTests {
         }
         let vm = GalleryViewModel(client: fake)
         await vm.refresh(at: CLLocationCoordinate2D(latitude: 52.5, longitude: 13.4),
-                        radiusKm: 5.0, kingdomKey: 1, datasetKey: nil, speciesKey: nil)
+                        radiusKm: 5.0, taxonKey: 1, datasetKey: nil, speciesKey: nil)
         switch vm.tiles {
         case .loaded(let arr):
             #expect(arr.count == 3)
@@ -65,7 +65,7 @@ struct GalleryViewModelTests {
         }
         let vm = GalleryViewModel(client: fake)
         await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-                        radiusKm: 1, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+                        radiusKm: 1, taxonKey: nil, datasetKey: nil, speciesKey: nil)
         switch vm.tiles {
         case .loaded(let arr): #expect(arr.isEmpty)
         default: Issue.record("expected loaded empty")
@@ -79,7 +79,7 @@ struct GalleryViewModelTests {
         await fake.setSearch { _ in throw GBIFError.http(status: 500, message: nil) }
         let vm = GalleryViewModel(client: fake)
         await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-                        radiusKm: 1, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+                        radiusKm: 1, taxonKey: nil, datasetKey: nil, speciesKey: nil)
         if case .failed = vm.tiles {} else { Issue.record("expected failed") }
     }
 
@@ -100,7 +100,7 @@ struct GalleryViewModelTests {
         }
         let vm = GalleryViewModel(client: fake)
         await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-                        radiusKm: 1, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+                        radiusKm: 1, taxonKey: nil, datasetKey: nil, speciesKey: nil)
         guard case .loaded(let first) = vm.tiles else { Issue.record("first page failed"); return }
         await vm.loadMoreIfNeeded(currentTileID: first.last!.id)
         guard case .loaded(let combined) = vm.tiles else { Issue.record("after loadMore"); return }
@@ -118,7 +118,7 @@ struct GalleryViewModelTests {
         }
         let vm = GalleryViewModel(client: fake)
         await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-                        radiusKm: 1, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+                        radiusKm: 1, taxonKey: nil, datasetKey: nil, speciesKey: nil)
         guard case .loaded(let first) = vm.tiles else { Issue.record("first page failed"); return }
         await vm.loadMoreIfNeeded(currentTileID: first.first!.id)
         guard case .loaded(let after) = vm.tiles else { Issue.record("expected loaded"); return }
@@ -137,7 +137,7 @@ struct GalleryViewModelTests {
         }
         let vm = GalleryViewModel(client: fake)
         await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-                        radiusKm: 1, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+                        radiusKm: 1, taxonKey: nil, datasetKey: nil, speciesKey: nil)
         for _ in 0..<20 {
             guard case .loaded(let arr) = vm.tiles, let lastID = arr.last?.id else { break }
             await vm.loadMoreIfNeeded(currentTileID: lastID)

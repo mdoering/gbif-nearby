@@ -23,7 +23,7 @@ struct SpeciesTabView: View {
             .navigationBarTitleDisplayMode(.inline)
             .task { ensureViewModel() }
             .onChange(of: radius.radiusKm) { _, _ in scheduleFetch() }
-            .onChange(of: taxon.selected) { _, _ in scheduleFetch() }
+            .onChange(of: taxon.effectiveTaxonKey) { _, _ in scheduleFetch() }
             .onChange(of: focus.datasetKey) { _, _ in scheduleFetch() }
             .onChange(of: focus.speciesKey) { _, _ in scheduleFetch() }
             .onChange(of: location.current?.latitude) { _, _ in scheduleFetch() }
@@ -98,8 +98,8 @@ struct SpeciesTabView: View {
     private func ensureViewModel() {
         if viewModel == nil {
             viewModel = SpeciesViewModel(client: client, settings: settings)
+            Task { await fetchAll() }
         }
-        Task { await fetchAll() }
     }
 
     private func scheduleFetch() {
@@ -112,7 +112,7 @@ struct SpeciesTabView: View {
         guard let center = location.current, let vm = viewModel else { return }
         await vm.refresh(at: center,
                          radiusKm: radius.radiusKm,
-                         kingdomKey: taxon.selected.taxonKey,
+                         taxonKey: taxon.effectiveTaxonKey,
                          datasetKey: focus.datasetKey,
                          speciesKey: focus.speciesKey)
         await vm.enrichTopRows(limit: 30)

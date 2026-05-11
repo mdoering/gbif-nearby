@@ -96,3 +96,23 @@ struct VernacularName: Codable, Sendable {
     let vernacularName: String
     let language: String?
 }
+
+/// Lightweight result from `/species/suggest` — enough to drive the autocomplete and to
+/// remember a selection.
+struct TaxonSuggestion: Codable, Sendable, Identifiable, Hashable, Equatable {
+    let key: Int
+    let scientificName: String
+    let canonicalName: String?
+    let rank: String?
+
+    var id: Int { key }
+
+    /// Human-readable label for the chip / autocomplete row.
+    /// Example: "Bombus terrestris (SPECIES)"
+    var displayLabel: String {
+        if let rank, rank.isEmpty == false {
+            return "\(scientificName) (\(rank.lowercased()))"
+        }
+        return scientificName
+    }
+}

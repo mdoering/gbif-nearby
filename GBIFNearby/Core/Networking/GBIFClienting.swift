@@ -7,4 +7,5 @@ protocol GBIFClienting: Sendable {
     func datasetSearch(query: String?, page: Int) async throws -> Page<Dataset>
     func species(key: Int) async throws -> Species
     func vernacularNames(key: Int, language: String) async throws -> [VernacularName]
+    func taxonSuggest(query: String, higherTaxonKey: Int?) async throws -> [TaxonSuggestion]
 }

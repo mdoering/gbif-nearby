@@ -4,7 +4,9 @@ struct OccurrenceQuery: Sendable, Equatable {
     var lat: Double?
     var lng: Double?
     var radiusKm: Double?
-    var kingdomKey: Int?
+    /// Filters by any GBIF taxon key (kingdom, phylum, … species). Kingdom keys
+    /// (Animalia 1, Fungi 5, Plantae 6) are valid taxonKey values, so we no longer
+    /// expose a separate `kingdomKey`.
     var taxonKey: Int?
     var datasetKey: String?
     var speciesKey: Int?
@@ -21,7 +23,6 @@ struct OccurrenceQuery: Sendable, Equatable {
         if let lat, let lng, let radiusKm {
             items.append(.init(name: "geo_distance", value: GeoDistance.queryValue(lat: lat, lng: lng, radiusKm: radiusKm)))
         }
-        if let kingdomKey { items.append(.init(name: "kingdomKey", value: String(kingdomKey))) }
         if let taxonKey { items.append(.init(name: "taxonKey", value: String(taxonKey))) }
         if let datasetKey { items.append(.init(name: "datasetKey", value: datasetKey)) }
         if let speciesKey { items.append(.init(name: "speciesKey", value: String(speciesKey))) }

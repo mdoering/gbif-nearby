@@ -60,6 +60,18 @@ actor GBIFClient: GBIFClienting {
         return page.results
     }
 
+    func taxonSuggest(query: String, higherTaxonKey: Int?) async throws -> [TaxonSuggestion] {
+        var items: [URLQueryItem] = [
+            .init(name: "q", value: query),
+            .init(name: "limit", value: "12"),
+        ]
+        if let higherTaxonKey {
+            items.append(.init(name: "higherTaxonKey", value: String(higherTaxonKey)))
+        }
+        // /species/suggest returns a bare JSON array (not a Page).
+        return try await get("species/suggest", items: items)
+    }
+
     // MARK: - Plumbing
 
     private func get<T: Decodable & Sendable>(_ path: String, items: [URLQueryItem]) async throws -> T {

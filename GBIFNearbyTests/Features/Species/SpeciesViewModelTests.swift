@@ -17,7 +17,7 @@ struct SpeciesViewModelTests {
             #expect(q.lat == 52.5)
             #expect(q.lng == 13.4)
             #expect(q.radiusKm == 5.0)
-            #expect(q.kingdomKey == 6)
+            #expect(q.taxonKey == 6)
             #expect(q.facet == "speciesKey")
             #expect(q.facetLimit == 100)
             #expect(q.facetMincount == 1)
@@ -30,7 +30,7 @@ struct SpeciesViewModelTests {
         }
         let vm = SpeciesViewModel(client: fake, settings: SettingsStore())
         await vm.refresh(at: CLLocationCoordinate2D(latitude: 52.5, longitude: 13.4),
-                        radiusKm: 5.0, kingdomKey: 6, datasetKey: nil, speciesKey: nil)
+                        radiusKm: 5.0, taxonKey: 6, datasetKey: nil, speciesKey: nil)
         switch vm.rows {
         case .loaded(let items):
             #expect(items.count == 2)
@@ -48,7 +48,7 @@ struct SpeciesViewModelTests {
         await fake.setSearch { _ in throw GBIFError.http(status: 502, message: nil) }
         let vm = SpeciesViewModel(client: fake, settings: SettingsStore())
         await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-                        radiusKm: 1.0, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+                        radiusKm: 1.0, taxonKey: nil, datasetKey: nil, speciesKey: nil)
         if case .failed = vm.rows {} else { Issue.record("expected failed") }
     }
 
@@ -61,7 +61,7 @@ struct SpeciesViewModelTests {
         }
         let vm = SpeciesViewModel(client: fake, settings: SettingsStore())
         await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-                        radiusKm: 1.0, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+                        radiusKm: 1.0, taxonKey: nil, datasetKey: nil, speciesKey: nil)
         switch vm.rows {
         case .loaded(let items): #expect(items.isEmpty)
         default: Issue.record("expected loaded empty")
@@ -94,7 +94,7 @@ struct SpeciesViewModelTests {
         settings.vernacularLanguage = "de"
         let vm = SpeciesViewModel(client: fake, settings: settings)
         await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-                        radiusKm: 1, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+                        radiusKm: 1, taxonKey: nil, datasetKey: nil, speciesKey: nil)
         await vm.enrichTopRows(limit: 30)
 
         guard case .loaded(let items) = vm.rows else {
@@ -122,7 +122,7 @@ struct SpeciesViewModelTests {
         settings.vernacularLanguage = "fr"
         let vm = SpeciesViewModel(client: fake, settings: settings)
         await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-                        radiusKm: 1, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+                        radiusKm: 1, taxonKey: nil, datasetKey: nil, speciesKey: nil)
         await vm.enrichTopRows(limit: 30)
 
         guard case .loaded(let items) = vm.rows else { Issue.record("expected loaded"); return }
@@ -149,7 +149,7 @@ struct SpeciesViewModelTests {
         }
         let vm = SpeciesViewModel(client: fake, settings: SettingsStore())
         await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-                        radiusKm: 1, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+                        radiusKm: 1, taxonKey: nil, datasetKey: nil, speciesKey: nil)
         await vm.fetchThumbnails(limit: 30)
 
         guard case .loaded(let items) = vm.rows else { Issue.record("expected loaded"); return }

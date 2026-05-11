@@ -20,7 +20,7 @@ final class SpeciesViewModel {
     }
 
     func refresh(at coord: CLLocationCoordinate2D, radiusKm: Double,
-                 kingdomKey: Int?, datasetKey: String?, speciesKey: Int?) async {
+                 taxonKey: Int?, datasetKey: String?, speciesKey: Int?) async {
         task?.cancel()
         enrichTask?.cancel()
         thumbnailTask?.cancel()
@@ -30,7 +30,7 @@ final class SpeciesViewModel {
         q.lat = coord.latitude
         q.lng = coord.longitude
         q.radiusKm = radiusKm
-        q.kingdomKey = kingdomKey
+        q.taxonKey = taxonKey
         q.datasetKey = datasetKey
         q.speciesKey = speciesKey
         q.facet = "speciesKey"

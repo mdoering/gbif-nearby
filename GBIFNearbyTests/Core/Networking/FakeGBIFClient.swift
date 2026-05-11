@@ -8,6 +8,7 @@ actor FakeGBIFClient: GBIFClienting {
     var recordedDatasetKeys: [String] = []
     var recordedSpeciesKeys: [Int] = []
     var recordedVernacularRequests: [(key: Int, lang: String)] = []
+    var recordedSuggestRequests: [(query: String, higherTaxonKey: Int?)] = []
 
     var searchHandler: (@Sendable (OccurrenceQuery) async throws -> Page<Occurrence>)?
     var countHandler: (@Sendable (OccurrenceQuery) async throws -> Int)?
@@ -15,6 +16,7 @@ actor FakeGBIFClient: GBIFClienting {
     var datasetSearchHandler: (@Sendable (String?, Int) async throws -> Page<Dataset>)?
     var speciesHandler: (@Sendable (Int) async throws -> Species)?
     var vernacularHandler: (@Sendable (Int, String) async throws -> [VernacularName])?
+    var suggestHandler: (@Sendable (String, Int?) async throws -> [TaxonSuggestion])?
 
     func setSearch(_ h: @escaping @Sendable (OccurrenceQuery) async throws -> Page<Occurrence>) { searchHandler = h }
     func setCount(_ h: @escaping @Sendable (OccurrenceQuery) async throws -> Int) { countHandler = h }
@@ -22,6 +24,7 @@ actor FakeGBIFClient: GBIFClienting {
     func setDatasetSearch(_ h: @escaping @Sendable (String?, Int) async throws -> Page<Dataset>) { datasetSearchHandler = h }
     func setSpecies(_ h: @escaping @Sendable (Int) async throws -> Species) { speciesHandler = h }
     func setVernacular(_ h: @escaping @Sendable (Int, String) async throws -> [VernacularName]) { vernacularHandler = h }
+    func setSuggest(_ h: @escaping @Sendable (String, Int?) async throws -> [TaxonSuggestion]) { suggestHandler = h }
 
     func occurrenceSearch(_ query: OccurrenceQuery) async throws -> Page<Occurrence> {
         recordedSearches.append(query)
@@ -48,5 +51,9 @@ actor FakeGBIFClient: GBIFClienting {
     func vernacularNames(key: Int, language: String) async throws -> [VernacularName] {
         recordedVernacularRequests.append((key, language))
         return try await (vernacularHandler ?? { _, _ in [] })(key, language)
+    }
+    func taxonSuggest(query: String, higherTaxonKey: Int?) async throws -> [TaxonSuggestion] {
+        recordedSuggestRequests.append((query, higherTaxonKey))
+        return try await (suggestHandler ?? { _, _ in [] })(query, higherTaxonKey)
     }
 }

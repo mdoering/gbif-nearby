@@ -10,10 +10,10 @@ struct RadiusStoreTests {
         return (RadiusStore(defaults: suite), suite)
     }
 
-    @Test("default is 5 km")
+    @Test("default is 2.5 km")
     func defaultValue() {
         let (store, _) = make()
-        #expect(store.radiusKm == 5.0)
+        #expect(store.radiusKm == 2.5)
     }
 
     @Test("clamps to 0.1...100")

@@ -13,7 +13,7 @@ struct MapViewModelTests {
             #expect(q.lat == 52.5)
             #expect(q.lng == 13.4)
             #expect(q.radiusKm == 5.0)
-            #expect(q.kingdomKey == 6)
+            #expect(q.taxonKey == 6)
             #expect(q.hasCoordinate == true)
             #expect(q.limit == 300)
             return Page(offset: 0, limit: 300, endOfRecords: true, count: 1,
@@ -26,7 +26,7 @@ struct MapViewModelTests {
         }
         let vm = MapViewModel(client: fake)
         await vm.fetchPins(at: CLLocationCoordinate2D(latitude: 52.5, longitude: 13.4),
-                           radiusKm: 5.0, kingdomKey: 6, datasetKey: nil, speciesKey: nil)
+                           radiusKm: 5.0, taxonKey: 6, datasetKey: nil, speciesKey: nil)
         switch vm.pins {
         case .loaded(let arr): #expect(arr.count == 1); #expect(arr[0].key == 99)
         default: Issue.record("expected loaded state, got \(vm.pins)")
@@ -40,7 +40,7 @@ struct MapViewModelTests {
         await fake.setSearch { _ in throw GBIFError.http(status: 503, message: nil) }
         let vm = MapViewModel(client: fake)
         await vm.fetchPins(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-                           radiusKm: 1.0, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+                           radiusKm: 1.0, taxonKey: nil, datasetKey: nil, speciesKey: nil)
         if case .failed = vm.pins {} else {
             Issue.record("expected failed state")
         }

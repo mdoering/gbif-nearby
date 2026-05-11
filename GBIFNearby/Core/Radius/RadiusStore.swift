@@ -7,7 +7,7 @@ final class RadiusStore {
     static let key = "radiusKm"
     static let minValue: Double = 0.1
     static let maxValue: Double = 100.0
-    static let defaultValue: Double = 5.0
+    static let defaultValue: Double = 2.5
 
     private let defaults: UserDefaults
 

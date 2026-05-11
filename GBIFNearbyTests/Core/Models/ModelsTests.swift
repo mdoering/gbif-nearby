@@ -32,10 +32,10 @@ struct ModelsTests {
 
     @Test("KingdomFilter taxon-key mapping")
     func kingdomMapping() {
-        #expect(KingdomFilter.all.taxonKey == nil)
         #expect(KingdomFilter.animals.taxonKey == 1)
         #expect(KingdomFilter.plants.taxonKey == 6)
         #expect(KingdomFilter.fungi.taxonKey == 5)
+        #expect(KingdomFilter.allCases.count == 3)
     }
 }
 

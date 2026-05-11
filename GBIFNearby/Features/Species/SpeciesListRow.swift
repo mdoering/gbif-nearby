@@ -43,20 +43,21 @@ struct SpeciesListRow: View {
         }
     }
 
+    @ViewBuilder
     private var placeholder: some View {
         ZStack {
             Color(.tertiarySystemFill)
-            Image(systemName: kingdomIcon)
-                .foregroundStyle(.secondary)
+            kingdomGlyph.foregroundStyle(.secondary)
         }
     }
 
-    private var kingdomIcon: String {
+    @ViewBuilder
+    private var kingdomGlyph: some View {
         switch item.kingdom?.lowercased() {
-        case "animalia": return "pawprint.fill"
-        case "plantae": return "leaf.fill"
-        case "fungi": return "allergens"
-        default: return "circle.dotted"
+        case "animalia": Image(systemName: "pawprint.fill")
+        case "plantae":  Image(systemName: "leaf.fill")
+        case "fungi":    Text("🍄")
+        default:         Image(systemName: "circle.dotted")
         }
     }
 }

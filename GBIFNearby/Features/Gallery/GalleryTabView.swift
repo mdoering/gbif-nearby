@@ -28,7 +28,7 @@ struct GalleryTabView: View {
             .navigationBarTitleDisplayMode(.inline)
             .task { ensureViewModel() }
             .onChange(of: radius.radiusKm) { _, _ in scheduleFetch() }
-            .onChange(of: taxon.selected) { _, _ in scheduleFetch() }
+            .onChange(of: taxon.effectiveTaxonKey) { _, _ in scheduleFetch() }
             .onChange(of: focus.datasetKey) { _, _ in scheduleFetch() }
             .onChange(of: focus.speciesKey) { _, _ in scheduleFetch() }
             .onChange(of: location.current?.latitude) { _, _ in scheduleFetch() }
@@ -113,8 +113,8 @@ struct GalleryTabView: View {
     private func ensureViewModel() {
         if viewModel == nil {
             viewModel = GalleryViewModel(client: client)
+            Task { await refresh() }
         }
-        Task { await refresh() }
     }
 
     private func scheduleFetch() {
@@ -125,7 +125,7 @@ struct GalleryTabView: View {
         guard let center = location.current, let vm = viewModel else { return }
         await vm.refresh(at: center,
                          radiusKm: radius.radiusKm,
-                         kingdomKey: taxon.selected.taxonKey,
+                         taxonKey: taxon.effectiveTaxonKey,
                          datasetKey: focus.datasetKey,
                          speciesKey: focus.speciesKey)
     }

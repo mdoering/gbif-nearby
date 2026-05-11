@@ -58,4 +58,29 @@ struct GBIFClientTests {
         let ds = try await client.dataset(key: "abc-123")
         #expect(ds.title == "Sample Dataset")
     }
+
+    @Test("taxonSuggest passes q + higherTaxonKey, decodes a bare JSON array")
+    func taxonSuggest() async throws {
+        MockURLProtocol.handler = { req in
+            let url = req.url!
+            #expect(url.path.hasSuffix("/species/suggest"))
+            let qs = url.query ?? ""
+            #expect(qs.contains("q=Bomb"))
+            #expect(qs.contains("higherTaxonKey=1"))
+            let body = """
+            [
+              {"key": 5231190, "scientificName": "Bombus terrestris", "canonicalName": "Bombus terrestris", "rank": "SPECIES"},
+              {"key": 1340278, "scientificName": "Bombus", "canonicalName": "Bombus", "rank": "GENUS"}
+            ]
+            """
+            let r = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (r, Data(body.utf8))
+        }
+        let client = GBIFClient(session: MockURLProtocol.makeSession())
+        let results = try await client.taxonSuggest(query: "Bomb", higherTaxonKey: 1)
+        #expect(results.count == 2)
+        #expect(results[0].key == 5231190)
+        #expect(results[0].scientificName == "Bombus terrestris")
+        #expect(results[0].rank == "SPECIES")
+    }
 }

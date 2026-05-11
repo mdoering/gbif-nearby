@@ -16,7 +16,7 @@ final class DatasetsViewModel {
         self.settings = settings
     }
 
-    func refresh(at coord: CLLocationCoordinate2D?, radiusKm: Double, kingdomKey: Int?, searchText: String) async {
+    func refresh(at coord: CLLocationCoordinate2D?, radiusKm: Double, taxonKey: Int?, searchText: String) async {
         task?.cancel()
         rows = .loading
         if settings.datasetsGlobal {
@@ -26,18 +26,18 @@ final class DatasetsViewModel {
                 rows = .loaded([])
                 return
             }
-            await runVicinity(coord: coord, radiusKm: radiusKm, kingdomKey: kingdomKey, searchText: searchText)
+            await runVicinity(coord: coord, radiusKm: radiusKm, taxonKey: taxonKey, searchText: searchText)
         }
     }
 
     // MARK: - Vicinity
 
-    private func runVicinity(coord: CLLocationCoordinate2D, radiusKm: Double, kingdomKey: Int?, searchText: String) async {
+    private func runVicinity(coord: CLLocationCoordinate2D, radiusKm: Double, taxonKey: Int?, searchText: String) async {
         var q = OccurrenceQuery()
         q.lat = coord.latitude
         q.lng = coord.longitude
         q.radiusKm = radiusKm
-        q.kingdomKey = kingdomKey
+        q.taxonKey = taxonKey
         q.facet = "datasetKey"
         q.facetLimit = 100
         q.facetMincount = 1

@@ -38,7 +38,7 @@ struct MapTabView: View {
             }
             .task { ensureViewModel() }
             .onChange(of: radius.radiusKm) { _, _ in scheduleFetch() }
-            .onChange(of: taxon.selected) { _, _ in scheduleFetch() }
+            .onChange(of: taxon.effectiveTaxonKey) { _, _ in scheduleFetch() }
             .onChange(of: focus.datasetKey) { _, _ in scheduleFetch() }
             .onChange(of: focus.speciesKey) { _, _ in scheduleFetch() }
             .onChange(of: location.current?.latitude) { _, _ in scheduleFetch() }
@@ -77,7 +77,7 @@ struct MapTabView: View {
         GBIFMapView(
             center: center,
             radiusKm: radius.radiusKm,
-            taxonKey: taxon.selected.taxonKey,
+            taxonKey: taxon.effectiveTaxonKey,
             datasetKey: focus.datasetKey,
             speciesKey: focus.speciesKey,
             pins: viewModel?.pins.value ?? [],
@@ -155,8 +155,8 @@ struct MapTabView: View {
     private func ensureViewModel() {
         if viewModel == nil {
             viewModel = MapViewModel(client: client)
+            Task { await fetchIfReady() }
         }
-        Task { await fetchIfReady() }
     }
 
     private func scheduleFetch() {
@@ -179,7 +179,7 @@ struct MapTabView: View {
         }
         await vm.fetchPins(at: center,
                            radiusKm: radius.radiusKm,
-                           kingdomKey: taxon.selected.taxonKey,
+                           taxonKey: taxon.effectiveTaxonKey,
                            datasetKey: focus.datasetKey,
                            speciesKey: focus.speciesKey)
     }

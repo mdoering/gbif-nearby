@@ -30,7 +30,7 @@ struct DatasetsTabView: View {
             .onChange(of: searchText) { _, _ in scheduleSearch() }
             .onChange(of: settings.datasetsGlobal) { _, _ in scheduleFilter() }
             .onChange(of: radius.radiusKm) { _, _ in scheduleFilter() }
-            .onChange(of: taxon.selected) { _, _ in scheduleFilter() }
+            .onChange(of: taxon.effectiveTaxonKey) { _, _ in scheduleFilter() }
             .onChange(of: focus.datasetKey) { _, _ in scheduleFilter() }
             .onChange(of: location.current?.latitude) { _, _ in scheduleFilter() }
             .onChange(of: location.current?.longitude) { _, _ in scheduleFilter() }
@@ -96,8 +96,8 @@ struct DatasetsTabView: View {
     private func ensureViewModel() {
         if viewModel == nil {
             viewModel = DatasetsViewModel(client: client, settings: settings)
+            Task { await fetch() }
         }
-        Task { await fetch() }
     }
 
     private func scheduleSearch() {
@@ -112,7 +112,7 @@ struct DatasetsTabView: View {
         guard let vm = viewModel else { return }
         await vm.refresh(at: location.current,
                          radiusKm: radius.radiusKm,
-                         kingdomKey: taxon.selected.taxonKey,
+                         taxonKey: taxon.effectiveTaxonKey,
                          searchText: searchText)
     }
 }

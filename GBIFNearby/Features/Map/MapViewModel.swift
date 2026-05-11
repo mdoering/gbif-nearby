@@ -15,14 +15,14 @@ final class MapViewModel {
     }
 
     func fetchPins(at coord: CLLocationCoordinate2D, radiusKm: Double,
-                   kingdomKey: Int?, datasetKey: String?, speciesKey: Int?) async {
+                   taxonKey: Int?, datasetKey: String?, speciesKey: Int?) async {
         task?.cancel()
         pins = .loading
         var q = OccurrenceQuery()
         q.lat = coord.latitude
         q.lng = coord.longitude
         q.radiusKm = radiusKm
-        q.kingdomKey = kingdomKey
+        q.taxonKey = taxonKey
         q.datasetKey = datasetKey
         q.speciesKey = speciesKey
         q.hasCoordinate = true
