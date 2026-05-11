@@ -67,4 +67,65 @@ struct SpeciesViewModelTests {
         default: Issue.record("expected loaded empty")
         }
     }
+
+    nonisolated private func sampleSpecies(key: Int, sci: String, kingdom: String = "Plantae") -> Species {
+        Species(key: key, scientificName: sci, canonicalName: sci, authorship: "L., 1758",
+                kingdom: kingdom, phylum: nil, class: nil, order: nil, family: nil,
+                genus: nil, rank: "SPECIES")
+    }
+
+    @Test("enrichTopRows fills scientific + vernacular + kingdom")
+    func enrich() async {
+        let fake = FakeGBIFClient()
+        await fake.setSearch { _ in
+            Page(offset: 0, limit: 0, endOfRecords: true, count: 0, results: [],
+                 facets: [FacetGroup(field: "SPECIES_KEY",
+                                     counts: [self.bucket("1", 5), self.bucket("2", 3)])])
+        }
+        await fake.setSpecies { key in
+            self.sampleSpecies(key: key, sci: "Species \(key)")
+        }
+        await fake.setVernacular { key, lang in
+            #expect(lang == "de")
+            return [VernacularName(vernacularName: "Art \(key)", language: "de")]
+        }
+
+        let settings = SettingsStore()
+        settings.vernacularLanguage = "de"
+        let vm = SpeciesViewModel(client: fake, settings: settings)
+        await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                        radiusKm: 1, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+        await vm.enrichTopRows(limit: 30)
+
+        guard case .loaded(let items) = vm.rows else {
+            Issue.record("expected loaded"); return
+        }
+        #expect(items.count == 2)
+        #expect(items[0].scientificName == "Species 1")
+        #expect(items[0].vernacularName == "Art 1")
+        #expect(items[0].kingdom == "Plantae")
+    }
+
+    @Test("vernacular falls back to English when locale miss")
+    func vernacularFallback() async {
+        let fake = FakeGBIFClient()
+        await fake.setSearch { _ in
+            Page(offset: 0, limit: 0, endOfRecords: true, count: 0, results: [],
+                 facets: [FacetGroup(field: "SPECIES_KEY", counts: [self.bucket("1", 5)])])
+        }
+        await fake.setSpecies { key in self.sampleSpecies(key: key, sci: "Sp \(key)") }
+        await fake.setVernacular { _, lang in
+            if lang == "en" { return [VernacularName(vernacularName: "Daisy", language: "en")] }
+            return []
+        }
+        let settings = SettingsStore()
+        settings.vernacularLanguage = "fr"
+        let vm = SpeciesViewModel(client: fake, settings: settings)
+        await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                        radiusKm: 1, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+        await vm.enrichTopRows(limit: 30)
+
+        guard case .loaded(let items) = vm.rows else { Issue.record("expected loaded"); return }
+        #expect(items[0].vernacularName == "Daisy")
+    }
 }
