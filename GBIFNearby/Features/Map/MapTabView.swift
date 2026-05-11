@@ -1,5 +1,6 @@
 import SwiftUI
 import CoreLocation
+import MapKit
 
 struct MapTabView: View {
     @Environment(LocationStore.self) private var location
@@ -13,6 +14,8 @@ struct MapTabView: View {
     @State private var pinDebouncer = AsyncDebouncer(delay: .milliseconds(400))
     @State private var regionDebouncer = AsyncDebouncer(delay: .milliseconds(500))
     @State private var pinFetchEnabled = false
+    @State private var mapType: MKMapType = .standard
+    @State private var recenterID: Int = 0
 
     var body: some View {
         NavigationStack {
@@ -27,6 +30,7 @@ struct MapTabView: View {
                         }
                     }
                 }
+                mapControls
             }
             .sheet(item: $selectedOccurrence) { occ in
                 OccurrenceSheet(occurrence: occ)
@@ -53,6 +57,8 @@ struct MapTabView: View {
                 datasetKey: focus.datasetKey,
                 speciesKey: focus.speciesKey,
                 pins: viewModel?.pins.value ?? [],
+                mapType: mapType,
+                recenterID: recenterID,
                 onPinTap: { selectedOccurrence = $0 },
                 onLongPress: { coord in location.setManual(coord) },
                 onRegionChange: { region in
@@ -63,6 +69,48 @@ struct MapTabView: View {
         } else {
             LocationPrompt()
         }
+    }
+
+    private var mapControls: some View {
+        VStack {
+            Spacer()
+            HStack {
+                Spacer()
+                VStack(spacing: 12) {
+                    Menu {
+                        Picker("Map Type", selection: $mapType) {
+                            Label("Standard", systemImage: "map").tag(MKMapType.standard)
+                            Label("Satellite", systemImage: "globe.americas.fill").tag(MKMapType.satellite)
+                            Label("Hybrid", systemImage: "globe.americas").tag(MKMapType.hybrid)
+                        }
+                    } label: {
+                        mapButtonLabel(systemName: "square.3.layers.3d")
+                    }
+                    .accessibilityLabel("Map type")
+
+                    Button {
+                        if location.source == .manual { location.clearManual() }
+                        recenterID += 1
+                    } label: {
+                        mapButtonLabel(systemName: "location.fill")
+                    }
+                    .accessibilityLabel("Recenter on me")
+                }
+                .padding(.trailing, 16)
+                .padding(.bottom, 24)
+            }
+        }
+        .allowsHitTesting(location.current != nil)
+        .opacity(location.current != nil ? 1 : 0)
+    }
+
+    private func mapButtonLabel(systemName: String) -> some View {
+        Image(systemName: systemName)
+            .font(.title3)
+            .frame(width: 44, height: 44)
+            .background(.regularMaterial, in: Circle())
+            .foregroundStyle(.primary)
+            .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
     }
 
     private func ensureViewModel() {

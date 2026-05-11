@@ -8,6 +8,8 @@ struct GBIFMapView: UIViewRepresentable {
     var datasetKey: String?
     var speciesKey: Int?
     var pins: [Occurrence]
+    var mapType: MKMapType = .standard
+    var recenterID: Int = 0
     var onPinTap: (Occurrence) -> Void
     var onLongPress: ((CLLocationCoordinate2D) -> Void)?
     var onRegionChange: ((MKCoordinateRegion) -> Void)?
@@ -28,6 +30,7 @@ struct GBIFMapView: UIViewRepresentable {
 
     func updateUIView(_ map: MKMapView, context: Context) {
         context.coordinator.parent = self
+        if map.mapType != mapType { map.mapType = mapType }
         context.coordinator.applyRegion(map)
         context.coordinator.applyCircle(map)
         context.coordinator.applyTileOverlay(map)
@@ -40,20 +43,25 @@ struct GBIFMapView: UIViewRepresentable {
         private var currentOverlayKey: String?
         private var currentCenter: CLLocationCoordinate2D?
         private var currentRadius: Double?
+        private var currentRecenterID: Int = -1
 
         init(_ parent: GBIFMapView) {
             self.parent = parent
         }
 
         func applyRegion(_ map: MKMapView) {
-            // Recenter when center coord meaningfully changes.
+            // Recenter on first appearance, on center/radius change, or when recenterID bumps.
             let c = parent.center
-            if currentCenter == nil || !same(currentCenter!, c) || currentRadius != parent.radiusKm {
+            let centerChanged = currentCenter == nil || !same(currentCenter!, c)
+            let radiusChanged = currentRadius != parent.radiusKm
+            let recenterRequested = currentRecenterID != parent.recenterID
+            if centerChanged || radiusChanged || recenterRequested {
                 let span = max(parent.radiusKm, 0.5) * 3000 // meters, ~3x diameter
                 let region = MKCoordinateRegion(center: c, latitudinalMeters: span, longitudinalMeters: span)
                 map.setRegion(region, animated: currentCenter != nil)
                 currentCenter = c
                 currentRadius = parent.radiusKm
+                currentRecenterID = parent.recenterID
             }
         }
 
