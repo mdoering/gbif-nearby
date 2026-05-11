@@ -60,4 +60,28 @@ struct SettingsStoreTests {
         let s = SettingsStore(defaults: suite)
         #expect(s.datasetsGlobal == true)
     }
+
+    @Test("distanceUnit default derives from locale measurement system")
+    func distanceUnitDefault() {
+        let suite = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        let s = SettingsStore(defaults: suite)
+        #expect(DistanceUnit.allCases.contains(s.distanceUnit))
+    }
+
+    @Test("distanceUnit persists when set")
+    func distanceUnitPersists() {
+        let (s, d) = make()
+        s.distanceUnit = .miles
+        #expect(d.string(forKey: "distanceUnit") == "miles")
+        s.distanceUnit = .kilometers
+        #expect(d.string(forKey: "distanceUnit") == "kilometers")
+    }
+
+    @Test("distanceUnit restores from defaults")
+    func distanceUnitRestores() {
+        let suite = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        suite.set("miles", forKey: "distanceUnit")
+        let s = SettingsStore(defaults: suite)
+        #expect(s.distanceUnit == .miles)
+    }
 }
