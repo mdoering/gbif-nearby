@@ -10,8 +10,6 @@ struct DatasetsTabView: View {
     @Environment(\.gbifClient) private var client
 
     @State private var viewModel: DatasetsViewModel?
-    @State private var searchText: String = ""
-    @State private var searchDebouncer = AsyncDebouncer(delay: .milliseconds(300))
     @State private var filterDebouncer = AsyncDebouncer(delay: .milliseconds(400))
 
     var body: some View {
@@ -19,33 +17,17 @@ struct DatasetsTabView: View {
             VStack(spacing: 0) {
                 RadiusHeader()
                 FocusFilterChip()
-                modeToggle
                 content
             }
             .navigationTitle("Datasets")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always),
-                        prompt: settings.datasetsGlobal ? "Search GBIF datasets" : "Filter nearby datasets")
             .task { ensureViewModel() }
-            .onChange(of: searchText) { _, _ in scheduleSearch() }
-            .onChange(of: settings.datasetsGlobal) { _, _ in scheduleFilter() }
             .onChange(of: radius.radiusKm) { _, _ in scheduleFilter() }
             .onChange(of: taxon.effectiveTaxonKey) { _, _ in scheduleFilter() }
             .onChange(of: focus.datasetKey) { _, _ in scheduleFilter() }
             .onChange(of: location.current?.latitude) { _, _ in scheduleFilter() }
             .onChange(of: location.current?.longitude) { _, _ in scheduleFilter() }
         }
-    }
-
-    private var modeToggle: some View {
-        @Bindable var bindableSettings = settings
-        return Toggle(isOn: $bindableSettings.datasetsGlobal) {
-            Text("Search all GBIF datasets")
-                .font(.footnote)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 6)
-        .background(Color(.secondarySystemBackground))
     }
 
     @ViewBuilder
@@ -83,9 +65,7 @@ struct DatasetsTabView: View {
         VStack(spacing: 8) {
             Spacer()
             Image(systemName: "tray").font(.largeTitle).foregroundStyle(.secondary)
-            Text(settings.datasetsGlobal
-                 ? "No datasets match \"\(searchText)\"."
-                 : "No datasets have records within \(DistanceFormatter.format(km: radius.radiusKm, unit: settings.distanceUnit)).")
+            Text("No datasets have records within \(DistanceFormatter.format(km: radius.radiusKm, unit: settings.distanceUnit)).")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal)
@@ -95,13 +75,9 @@ struct DatasetsTabView: View {
 
     private func ensureViewModel() {
         if viewModel == nil {
-            viewModel = DatasetsViewModel(client: client, settings: settings)
+            viewModel = DatasetsViewModel(client: client)
             Task { await fetch() }
         }
-    }
-
-    private func scheduleSearch() {
-        Task { await searchDebouncer.schedule { await self.fetch() } }
     }
 
     private func scheduleFilter() {
@@ -112,8 +88,6 @@ struct DatasetsTabView: View {
         guard let vm = viewModel else { return }
         await vm.refresh(at: location.current,
                          radiusKm: radius.radiusKm,
-                         taxonKey: taxon.effectiveTaxonKey,
-                         searchText: searchText)
+                         taxonKey: taxon.effectiveTaxonKey)
     }
 }
-

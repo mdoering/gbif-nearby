@@ -5,7 +5,6 @@ import Observation
 @Observable
 final class SettingsStore {
     static let vernacularLanguageKey = "vernacularLanguage"
-    static let datasetsGlobalKey = "datasetsGlobal"
     static let distanceUnitKey = "distanceUnit"
     private let defaults: UserDefaults
 
@@ -24,12 +23,6 @@ final class SettingsStore {
         }
     }
 
-    var datasetsGlobal: Bool {
-        didSet {
-            defaults.set(datasetsGlobal, forKey: Self.datasetsGlobalKey)
-        }
-    }
-
     var distanceUnit: DistanceUnit {
         didSet {
             defaults.set(distanceUnit.rawValue, forKey: Self.distanceUnitKey)
@@ -39,7 +32,6 @@ final class SettingsStore {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         self.vernacularLanguage = defaults.string(forKey: Self.vernacularLanguageKey)
-        self.datasetsGlobal = defaults.bool(forKey: Self.datasetsGlobalKey)
         if let raw = defaults.string(forKey: Self.distanceUnitKey),
            let value = DistanceUnit(rawValue: raw) {
             self.distanceUnit = value

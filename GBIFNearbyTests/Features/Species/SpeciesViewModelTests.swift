@@ -129,6 +129,52 @@ struct SpeciesViewModelTests {
         #expect(items[0].vernacularName == "Daisy")
     }
 
+    @Test("enrichRowIfNeeded enriches a single row by speciesKey")
+    func enrichOne() async {
+        let fake = FakeGBIFClient()
+        await fake.setSearch { _ in
+            Page(offset: 0, limit: 0, endOfRecords: true, count: 0, results: [],
+                 facets: [FacetGroup(field: "SPECIES_KEY",
+                                     counts: [self.bucket("1", 5), self.bucket("2", 3)])])
+        }
+        await fake.setSpecies { key in self.sampleSpecies(key: key, sci: "Species \(key)") }
+        await fake.setVernacular { key, _ in
+            [VernacularName(vernacularName: "Common \(key)", language: "en")]
+        }
+        let vm = SpeciesViewModel(client: fake, settings: SettingsStore())
+        await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                        radiusKm: 1, taxonKey: nil, datasetKey: nil, speciesKey: nil)
+
+        // Only enrich row #2 — row #1 stays bare.
+        await vm.enrichRowIfNeeded(speciesKey: 2)
+
+        guard case .loaded(let items) = vm.rows else { Issue.record("expected loaded"); return }
+        #expect(items[0].scientificName == nil)
+        #expect(items[1].scientificName == "Species 2")
+        #expect(items[1].vernacularName == "Common 2")
+    }
+
+    @Test("enrichRowIfNeeded dedupes repeat calls for the same key")
+    func enrichDedupe() async {
+        let fake = FakeGBIFClient()
+        await fake.setSearch { _ in
+            Page(offset: 0, limit: 0, endOfRecords: true, count: 0, results: [],
+                 facets: [FacetGroup(field: "SPECIES_KEY", counts: [self.bucket("1", 5)])])
+        }
+        await fake.setSpecies { key in self.sampleSpecies(key: key, sci: "Sp \(key)") }
+        await fake.setVernacular { _, _ in [] }
+        let vm = SpeciesViewModel(client: fake, settings: SettingsStore())
+        await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                        radiusKm: 1, taxonKey: nil, datasetKey: nil, speciesKey: nil)
+
+        await vm.enrichRowIfNeeded(speciesKey: 1)
+        await vm.enrichRowIfNeeded(speciesKey: 1)
+        await vm.enrichRowIfNeeded(speciesKey: 1)
+
+        let recorded = await fake.recordedSpeciesKeys
+        #expect(recorded == [1])
+    }
+
     @Test("fetchThumbnails populates ThumbnailRef from /occurrence/search?speciesKey=...&mediaType=StillImage")
     func thumbnails() async {
         let fake = FakeGBIFClient()

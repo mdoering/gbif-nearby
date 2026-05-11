@@ -17,6 +17,9 @@ final class LocationStore: NSObject {
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        // Suppress per-second GPS jitter on a stationary device — without this,
+        // every data tab refetches once a second and flashes its shimmer placeholder.
+        manager.distanceFilter = 25
         authStatus = manager.authorizationStatus
     }
 

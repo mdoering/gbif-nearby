@@ -13,7 +13,12 @@ struct SpeciesDetailView: View {
     @State private var globalCount: Int?
     @State private var nearbyCount: Int?
     @State private var carouselImages: [ThumbnailRef] = []
-    @State private var showSafari = false
+    @State private var safariURL: SafariLink?
+
+    private struct SafariLink: Identifiable, Hashable {
+        let url: URL
+        var id: URL { url }
+    }
 
     var body: some View {
         Form {
@@ -74,7 +79,12 @@ struct SpeciesDetailView: View {
             }
 
             Section {
-                Button("View on GBIF.org") { showSafari = true }
+                Button("View on GBIF.org") {
+                    safariURL = SafariLink(url: URL(string: "https://www.gbif.org/species/\(item.speciesKey)")!)
+                }
+                if let url = colSearchURL {
+                    Button("Find in Catalogue of Life") { safariURL = SafariLink(url: url) }
+                }
             }
 
             Section {
@@ -89,11 +99,18 @@ struct SpeciesDetailView: View {
         }
         .navigationTitle("Species")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showSafari) {
-            SafariView(url: URL(string: "https://www.gbif.org/species/\(item.speciesKey)")!)
-                .ignoresSafeArea()
+        .sheet(item: $safariURL) { link in
+            SafariView(url: link.url).ignoresSafeArea()
         }
         .task { await loadDetails() }
+    }
+
+    private var colSearchURL: URL? {
+        guard let name = item.canonicalName ?? item.scientificName,
+              let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            return nil
+        }
+        return URL(string: "https://www.catalogueoflife.org/data/search?q=\(encoded)")
     }
 
     @ViewBuilder

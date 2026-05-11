@@ -17,6 +17,17 @@ struct AboutTabView: View {
                         .font(.footnote)
                 }
 
+                Section {
+                    Image("GBIFLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 60)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 8)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
+                }
+
                 Section("About GBIF") {
                     Text("GBIF — the Global Biodiversity Information Facility — is an international network and data infrastructure funded by the world's governments and aimed at providing anyone, anywhere, open access to data about all types of life on Earth.")
                         .font(.footnote)

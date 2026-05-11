@@ -48,6 +48,12 @@ struct SpeciesTabView: View {
                         } label: {
                             SpeciesListRow(item: item)
                         }
+                        .onAppear {
+                            Task {
+                                await viewModel?.enrichRowIfNeeded(speciesKey: item.speciesKey)
+                                await viewModel?.fetchThumbnailIfNeeded(speciesKey: item.speciesKey)
+                            }
+                        }
                     }
                 }
                 .listStyle(.plain)

@@ -6,33 +6,22 @@ import Observation
 @Observable
 final class DatasetsViewModel {
     private let client: any GBIFClienting
-    private let settings: SettingsStore
     private var task: Task<Void, Never>?
 
     var rows: Loading<[DatasetRowItem]> = .idle
 
-    init(client: any GBIFClienting, settings: SettingsStore) {
+    init(client: any GBIFClienting) {
         self.client = client
-        self.settings = settings
     }
 
-    func refresh(at coord: CLLocationCoordinate2D?, radiusKm: Double, taxonKey: Int?, searchText: String) async {
+    func refresh(at coord: CLLocationCoordinate2D?, radiusKm: Double, taxonKey: Int?) async {
         task?.cancel()
         rows = .loading
-        if settings.datasetsGlobal {
-            await runGlobal(searchText: searchText)
-        } else {
-            guard let coord else {
-                rows = .loaded([])
-                return
-            }
-            await runVicinity(coord: coord, radiusKm: radiusKm, taxonKey: taxonKey, searchText: searchText)
+        guard let coord else {
+            rows = .loaded([])
+            return
         }
-    }
 
-    // MARK: - Vicinity
-
-    private func runVicinity(coord: CLLocationCoordinate2D, radiusKm: Double, taxonKey: Int?, searchText: String) async {
         var q = OccurrenceQuery()
         q.lat = coord.latitude
         q.lng = coord.longitude
@@ -58,9 +47,9 @@ final class DatasetsViewModel {
                             var row = DatasetRowItem(key: b.name, nearbyCount: b.count)
                             if let ds = try? await captureClient.dataset(key: b.name) {
                                 row.title = ds.title
-                                row.publisher = ds.publishingOrganizationTitle
                                 row.type = ds.type
                                 row.license = ds.license
+                                row.publisher = await Self.resolvePublisher(dataset: ds, client: captureClient)
                             }
                             return (idx, row)
                         }
@@ -72,9 +61,8 @@ final class DatasetsViewModel {
                     return result
                 }
 
-                let filtered = Self.filterBySearch(rows: enriched, searchText: searchText)
                 if Task.isCancelled { return }
-                self?.rows = .loaded(filtered)
+                self?.rows = .loaded(enriched)
             } catch let error as GBIFError {
                 if Task.isCancelled { return }
                 self?.rows = .failed(error)
@@ -86,44 +74,17 @@ final class DatasetsViewModel {
         await task.value
     }
 
-    // MARK: - Global
-
-    private func runGlobal(searchText: String) async {
-        let captureClient = client
-        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let query: String? = q.isEmpty ? nil : q
-        let task = Task { [weak self] in
-            do {
-                let page = try await captureClient.datasetSearch(query: query, page: 0)
-                if Task.isCancelled { return }
-                let rows = page.results.map { ds in
-                    DatasetRowItem(key: ds.key,
-                                   title: ds.title,
-                                   publisher: ds.publishingOrganizationTitle,
-                                   type: ds.type,
-                                   license: ds.license,
-                                   nearbyCount: nil)
-                }
-                self?.rows = .loaded(rows)
-            } catch let error as GBIFError {
-                if Task.isCancelled { return }
-                self?.rows = .failed(error)
-            } catch {
-                self?.rows = .failed(.network(URLError(.unknown)))
-            }
+    /// GBIF's `/dataset/{key}` endpoint often returns `publishingOrganizationTitle: null` even when
+    /// the publisher exists. Fall back to `/organization/{key}` so rows don't render as
+    /// "Unknown publisher".
+    static func resolvePublisher(dataset: Dataset, client: any GBIFClienting) async -> String? {
+        if let title = dataset.publishingOrganizationTitle, title.isEmpty == false {
+            return title
         }
-        self.task = task
-        await task.value
-    }
-
-    // MARK: - Filtering
-
-    static func filterBySearch(rows: [DatasetRowItem], searchText: String) -> [DatasetRowItem] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard query.isEmpty == false else { return rows }
-        return rows.filter { row in
-            (row.title?.lowercased().contains(query) ?? false)
-            || (row.publisher?.lowercased().contains(query) ?? false)
+        guard let orgKey = dataset.publishingOrganizationKey,
+              let org = try? await client.organization(key: orgKey) else {
+            return nil
         }
+        return org.title
     }
 }

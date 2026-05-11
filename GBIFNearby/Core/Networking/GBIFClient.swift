@@ -39,6 +39,10 @@ actor GBIFClient: GBIFClienting {
         try await get("dataset/\(key)", items: [])
     }
 
+    func organization(key: String) async throws -> Organization {
+        try await get("organization/\(key)", items: [])
+    }
+
     func datasetSearch(query: String?, page: Int) async throws -> Page<Dataset> {
         var items: [URLQueryItem] = [
             .init(name: "type", value: "OCCURRENCE"),

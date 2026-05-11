@@ -11,6 +11,7 @@ struct GBIFMapView: UIViewRepresentable {
     var mapType: MKMapType = .standard
     var recenterID: Int = 0
     var onPinTap: (Occurrence) -> Void
+    var onClusterTap: (([Occurrence]) -> Void)?
     var onLongPress: ((CLLocationCoordinate2D) -> Void)?
     var onRegionChange: ((MKCoordinateRegion) -> Void)?
 
@@ -133,9 +134,50 @@ struct GBIFMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+            if let cluster = view.annotation as? MKClusterAnnotation {
+                let members = cluster.memberAnnotations
+                let occs = members.compactMap { ($0 as? OccurrencePin)?.occurrence }
+                if occs.count >= 2, Self.allSameLocation(members) {
+                    parent.onClusterTap?(occs)
+                } else if members.isEmpty == false {
+                    let region = Self.region(containing: members)
+                    mapView.setRegion(region, animated: true)
+                }
+                mapView.deselectAnnotation(cluster, animated: false)
+                return
+            }
             guard let pin = view.annotation as? OccurrencePin else { return }
             parent.onPinTap(pin.occurrence)
             mapView.deselectAnnotation(view.annotation, animated: false)
+        }
+
+        private static func allSameLocation(_ anns: [MKAnnotation]) -> Bool {
+            guard let first = anns.first else { return false }
+            // ~1 m at the equator — tight enough to mean "literally the same coord".
+            return anns.allSatisfy {
+                abs($0.coordinate.latitude - first.coordinate.latitude) < 1e-5 &&
+                abs($0.coordinate.longitude - first.coordinate.longitude) < 1e-5
+            }
+        }
+
+        private static func region(containing anns: [MKAnnotation]) -> MKCoordinateRegion {
+            let lats = anns.map { $0.coordinate.latitude }
+            let lngs = anns.map { $0.coordinate.longitude }
+            guard let minLat = lats.min(), let maxLat = lats.max(),
+                  let minLng = lngs.min(), let maxLng = lngs.max() else {
+                return MKCoordinateRegion()
+            }
+            let center = CLLocationCoordinate2D(
+                latitude: (minLat + maxLat) / 2,
+                longitude: (minLng + maxLng) / 2
+            )
+            // Pad the span 1.5x so the markers don't sit at the very edges; floor it
+            // so a tightly-spaced cluster still zooms to something usefully tight.
+            let span = MKCoordinateSpan(
+                latitudeDelta: max(0.001, (maxLat - minLat) * 1.5),
+                longitudeDelta: max(0.001, (maxLng - minLng) * 1.5)
+            )
+            return MKCoordinateRegion(center: center, span: span)
         }
 
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {

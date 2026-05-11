@@ -57,10 +57,18 @@ struct Dataset: Codable, Sendable, Identifiable {
     let type: String?
     let license: String?
     let description: String?
+    let doi: String?
     let publishingOrganizationKey: String?
     let publishingOrganizationTitle: String?
     let citation: Citation?
     let contacts: [DatasetContact]?
+
+    var id: String { key }
+}
+
+struct Organization: Codable, Sendable, Identifiable {
+    let key: String
+    let title: String?
 
     var id: String { key }
 }

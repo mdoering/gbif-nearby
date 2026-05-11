@@ -9,6 +9,7 @@ struct OccurrenceDetailView: View {
 
     @State private var pageIndex: Int = 0
     @State private var vernacularByKey: [Int: String?] = [:]
+    @State private var datasetTitleByKey: [String: String?] = [:]
     @State private var showSafari = false
 
     var body: some View {
@@ -40,7 +41,7 @@ struct OccurrenceDetailView: View {
         }
         .onAppear { pageIndex = startIndex }
         .task(id: pageIndex) {
-            await loadVernacularIfNeeded()
+            await loadMetadataIfNeeded()
         }
     }
 
@@ -55,19 +56,8 @@ struct OccurrenceDetailView: View {
             let url = ImageCacheURL.build(occurrenceKey: tile.occurrence.key,
                                           identifier: tile.identifier,
                                           size: .width(1200))
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().aspectRatio(contentMode: .fit)
-                case .empty:
-                    ProgressView().tint(.white)
-                case .failure:
-                    Image(systemName: "photo").font(.largeTitle).foregroundStyle(.white.opacity(0.5))
-                @unknown default: EmptyView()
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.black)
+            ZoomableImage(url: url)
+                .background(Color.black)
 
             metadata(for: tile)
         }
@@ -92,7 +82,7 @@ struct OccurrenceDetailView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
             if let dsKey = tile.occurrence.datasetKey {
-                Text("Dataset: \(dsKey)")
+                Text("Dataset: \(datasetDisplay(for: dsKey))")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -108,6 +98,20 @@ struct OccurrenceDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(.regularMaterial)
+    }
+
+    private func datasetDisplay(for key: String) -> String {
+        if let cached = datasetTitleByKey[key], let title = cached, title.isEmpty == false {
+            return title
+        }
+        return key
+    }
+
+    private func loadMetadataIfNeeded() async {
+        async let v: Void = loadVernacularIfNeeded()
+        async let d: Void = loadDatasetTitleIfNeeded()
+        _ = await v
+        _ = await d
     }
 
     private func loadVernacularIfNeeded() async {
@@ -126,5 +130,14 @@ struct OccurrenceDetailView: View {
         } else {
             vernacularByKey[speciesKey] = chosen
         }
+    }
+
+    private func loadDatasetTitleIfNeeded() async {
+        guard let tile = currentTile,
+              let dsKey = tile.occurrence.datasetKey,
+              datasetTitleByKey[dsKey] == nil else { return }
+        let ds = try? await client.dataset(key: dsKey)
+        // Cache nil too — so a failed lookup doesn't keep retrying every page flip.
+        datasetTitleByKey[dsKey] = ds?.title
     }
 }

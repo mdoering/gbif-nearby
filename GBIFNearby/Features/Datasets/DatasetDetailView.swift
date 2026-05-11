@@ -12,9 +12,12 @@ struct DatasetDetailView: View {
     @Environment(SettingsStore.self) private var settings
 
     @State private var dataset: Dataset?
+    @State private var decodedDescription: String?
+    @State private var publisherTitle: String?
     @State private var loadError: GBIFError?
     @State private var totalCount: Int?
     @State private var georefCount: Int?
+    @State private var mediaCount: Int?
     @State private var nearbyCount: Int?
     @State private var showSafari = false
     @State private var copiedCitation = false
@@ -24,11 +27,18 @@ struct DatasetDetailView: View {
             Section {
                 Text(dataset?.title ?? item.title ?? item.key)
                     .font(.headline)
-                if let pub = dataset?.publishingOrganizationTitle ?? item.publisher {
+                if let pub = publisherTitle ?? item.publisher {
                     Text(pub).foregroundStyle(.secondary).font(.subheadline)
                 }
+                if let doi = dataset?.doi, doi.isEmpty == false,
+                   let url = URL(string: "https://doi.org/\(doi)") {
+                    Link(destination: url) {
+                        Label(doi, systemImage: "link")
+                            .font(.subheadline)
+                    }
+                }
             }
-            if let desc = dataset?.description, desc.isEmpty == false {
+            if let desc = decodedDescription, desc.isEmpty == false {
                 Section("Description") {
                     Text(desc).font(.footnote).lineLimit(nil)
                 }
@@ -36,6 +46,7 @@ struct DatasetDetailView: View {
             Section("Counts") {
                 statRow("Total records", value: totalCount)
                 statRow("Georeferenced", value: georefCount)
+                statRow("With media", value: mediaCount)
                 statRow("Within \(DistanceFormatter.format(km: radius.radiusKm, unit: settings.distanceUnit))", value: nearbyCount)
             }
             if let lic = dataset?.license ?? item.license {
@@ -153,10 +164,23 @@ struct DatasetDetailView: View {
             q.hasCoordinate = true
             return try? await client.occurrenceCount(q)
         }()
-        let (d, t, g) = await (ds, total, georef)
+        async let media: Int? = {
+            var q = OccurrenceQuery()
+            q.datasetKey = item.key
+            q.mediaType = "StillImage"
+            return try? await client.occurrenceCount(q)
+        }()
+        let (d, t, g, m) = await (ds, total, georef, media)
         dataset = d
         totalCount = t
         georefCount = g
+        mediaCount = m
+        if let d {
+            publisherTitle = await DatasetsViewModel.resolvePublisher(dataset: d, client: client)
+            if let raw = d.description, raw.isEmpty == false {
+                decodedDescription = HTMLDecoder.plainText(from: raw)
+            }
+        }
         await loadNearby()
     }
 

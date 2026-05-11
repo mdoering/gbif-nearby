@@ -12,6 +12,7 @@ struct MapTabView: View {
 
     @State private var viewModel: MapViewModel?
     @State private var selectedOccurrence: Occurrence?
+    @State private var clusterSelection: ClusterSelection?
     @State private var pinDebouncer = AsyncDebouncer(delay: .milliseconds(400))
     @State private var regionDebouncer = AsyncDebouncer(delay: .milliseconds(500))
     @State private var pinFetchEnabled = false
@@ -35,6 +36,9 @@ struct MapTabView: View {
             }
             .sheet(item: $selectedOccurrence) { occ in
                 OccurrenceSheet(occurrence: occ)
+            }
+            .sheet(item: $clusterSelection) { sel in
+                ClusterPickerSheet(occurrences: sel.occurrences)
             }
             .task { ensureViewModel() }
             .onChange(of: radius.radiusKm) { _, _ in scheduleFetch() }
@@ -84,6 +88,7 @@ struct MapTabView: View {
             mapType: mapType,
             recenterID: recenterID,
             onPinTap: { selectedOccurrence = $0 },
+            onClusterTap: { clusterSelection = ClusterSelection(occurrences: $0) },
             onLongPress: { coord in location.setManual(coord) },
             onRegionChange: { region in
                 pinFetchEnabled = region.span.latitudeDelta < 0.2
@@ -183,6 +188,13 @@ struct MapTabView: View {
                            datasetKey: focus.datasetKey,
                            speciesKey: focus.speciesKey)
     }
+}
+
+/// Identifiable wrapper around a co-located group of occurrences so it can drive
+/// a `.sheet(item:)` presentation.
+struct ClusterSelection: Identifiable {
+    let occurrences: [Occurrence]
+    var id: String { occurrences.map { String($0.key) }.joined(separator: ",") }
 }
 
 private struct LocationPrompt: View {
