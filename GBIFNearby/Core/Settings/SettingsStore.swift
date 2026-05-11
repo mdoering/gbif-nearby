@@ -5,6 +5,7 @@ import Observation
 @Observable
 final class SettingsStore {
     static let vernacularLanguageKey = "vernacularLanguage"
+    static let datasetsGlobalKey = "datasetsGlobal"
     private let defaults: UserDefaults
 
     var vernacularLanguage: String? {
@@ -22,8 +23,15 @@ final class SettingsStore {
         }
     }
 
+    var datasetsGlobal: Bool {
+        didSet {
+            defaults.set(datasetsGlobal, forKey: Self.datasetsGlobalKey)
+        }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         self.vernacularLanguage = defaults.string(forKey: Self.vernacularLanguageKey)
+        self.datasetsGlobal = defaults.bool(forKey: Self.datasetsGlobalKey)
     }
 }

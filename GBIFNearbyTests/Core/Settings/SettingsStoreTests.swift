@@ -39,4 +39,25 @@ struct SettingsStoreTests {
         let s = SettingsStore(defaults: suite)
         #expect(s.vernacularLanguage == "fr")
     }
+
+    @Test("datasetsGlobal default is false")
+    func datasetsGlobalDefault() {
+        let (s, _) = make()
+        #expect(s.datasetsGlobal == false)
+    }
+
+    @Test("datasetsGlobal persists when set")
+    func datasetsGlobalPersists() {
+        let (s, d) = make()
+        s.datasetsGlobal = true
+        #expect(d.bool(forKey: "datasetsGlobal") == true)
+    }
+
+    @Test("datasetsGlobal restores from defaults")
+    func datasetsGlobalRestores() {
+        let suite = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        suite.set(true, forKey: "datasetsGlobal")
+        let s = SettingsStore(defaults: suite)
+        #expect(s.datasetsGlobal == true)
+    }
 }
