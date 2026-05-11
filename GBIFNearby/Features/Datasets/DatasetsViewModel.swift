@@ -89,7 +89,31 @@ final class DatasetsViewModel {
     // MARK: - Global
 
     private func runGlobal(searchText: String) async {
-        rows = .loaded([])
+        let captureClient = client
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let query: String? = q.isEmpty ? nil : q
+        let task = Task { [weak self] in
+            do {
+                let page = try await captureClient.datasetSearch(query: query, page: 0)
+                if Task.isCancelled { return }
+                let rows = page.results.map { ds in
+                    DatasetRowItem(key: ds.key,
+                                   title: ds.title,
+                                   publisher: ds.publishingOrganizationTitle,
+                                   type: ds.type,
+                                   license: ds.license,
+                                   nearbyCount: nil)
+                }
+                self?.rows = .loaded(rows)
+            } catch let error as GBIFError {
+                if Task.isCancelled { return }
+                self?.rows = .failed(error)
+            } catch {
+                self?.rows = .failed(.network(URLError(.unknown)))
+            }
+        }
+        self.task = task
+        await task.value
     }
 
     // MARK: - Filtering

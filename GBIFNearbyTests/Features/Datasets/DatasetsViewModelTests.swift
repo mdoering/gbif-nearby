@@ -16,6 +16,10 @@ struct DatasetsViewModelTests {
                 publishingOrganizationTitle: publisher, citation: nil, contacts: nil)
     }
 
+    private func freshSettings() -> SettingsStore {
+        SettingsStore(defaults: UserDefaults(suiteName: UUID().uuidString)!)
+    }
+
     @Test("refreshVicinity facets occurrence search, enriches top buckets")
     func refreshVicinity() async {
         let fake = FakeGBIFClient()
@@ -37,7 +41,7 @@ struct DatasetsViewModelTests {
             self.sampleDataset(key: key, title: "Dataset \(key)")
         }
 
-        let vm = DatasetsViewModel(client: fake, settings: SettingsStore())
+        let vm = DatasetsViewModel(client: fake, settings: freshSettings())
         await vm.refresh(at: CLLocationCoordinate2D(latitude: 52.5, longitude: 13.4),
                         radiusKm: 5.0, kingdomKey: 6, searchText: "")
 
@@ -55,9 +59,50 @@ struct DatasetsViewModelTests {
     func vicinityError() async {
         let fake = FakeGBIFClient()
         await fake.setSearch { _ in throw GBIFError.http(status: 500, message: nil) }
-        let vm = DatasetsViewModel(client: fake, settings: SettingsStore())
+        let vm = DatasetsViewModel(client: fake, settings: freshSettings())
         await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
                         radiusKm: 1, kingdomKey: nil, searchText: "")
         if case .failed = vm.rows {} else { Issue.record("expected failed") }
+    }
+
+    @Test("global mode hits /dataset/search and maps to rows")
+    func global() async {
+        let fake = FakeGBIFClient()
+        await fake.setDatasetSearch { query, page in
+            #expect(query == "iNaturalist")
+            #expect(page == 0)
+            let ds = self.sampleDataset(key: "abc", title: "iNaturalist Research-grade")
+            return Page(offset: 0, limit: 20, endOfRecords: true, count: 1,
+                        results: [ds], facets: nil)
+        }
+        let settings = freshSettings()
+        settings.datasetsGlobal = true
+        let vm = DatasetsViewModel(client: fake, settings: settings)
+        await vm.refresh(at: nil, radiusKm: 5, kingdomKey: nil, searchText: "iNaturalist")
+        switch vm.rows {
+        case .loaded(let items):
+            #expect(items.count == 1)
+            #expect(items[0].key == "abc")
+            #expect(items[0].title == "iNaturalist Research-grade")
+            #expect(items[0].nearbyCount == nil)
+        default: Issue.record("expected loaded, got \(vm.rows)")
+        }
+    }
+
+    @Test("global mode with empty query passes nil to API")
+    func globalEmptyQuery() async {
+        let fake = FakeGBIFClient()
+        await fake.setDatasetSearch { query, _ in
+            #expect(query == nil || query == "")
+            return Page(offset: 0, limit: 20, endOfRecords: true, count: 0, results: [], facets: nil)
+        }
+        let settings = freshSettings()
+        settings.datasetsGlobal = true
+        let vm = DatasetsViewModel(client: fake, settings: settings)
+        await vm.refresh(at: nil, radiusKm: 5, kingdomKey: nil, searchText: "")
+        switch vm.rows {
+        case .loaded(let items): #expect(items.isEmpty)
+        default: Issue.record("expected loaded")
+        }
     }
 }
