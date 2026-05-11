@@ -44,10 +44,16 @@ targets:
     platform: iOS
     sources:
       - path: GBIFNearbyTests
-    dependencies:
-      - target: GBIFNearby
+        excludes:
+          - "Fixtures/**"
+      - path: GBIFNearbyTests/Fixtures/occurrence-search.json
+        buildPhase: resources
+      - path: GBIFNearbyTests/Fixtures/occurrence-facet-species.json
+        buildPhase: resources
     info:
       path: GBIFNearbyTests/Info.plist
+    dependencies:
+      - target: GBIFNearby
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.gbif.nearby.tests
