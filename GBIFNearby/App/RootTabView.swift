@@ -18,21 +18,9 @@ struct RootTabView: View {
             DatasetsTabView()
                 .tabItem { Label("Datasets", systemImage: "tray.full") }
                 .tag(Tab.datasets)
-            placeholder("About")
+            AboutTabView()
                 .tabItem { Label("About", systemImage: "info.circle") }
                 .tag(Tab.about)
-        }
-    }
-
-    private func placeholder(_ label: String) -> some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                RadiusHeader()
-                FocusFilterChip()
-                Spacer()
-                Text(label).foregroundStyle(.secondary)
-                Spacer()
-            }
         }
     }
 }
