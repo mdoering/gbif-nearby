@@ -82,4 +82,69 @@ struct GalleryViewModelTests {
                         radiusKm: 1, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
         if case .failed = vm.tiles {} else { Issue.record("expected failed") }
     }
+
+    @Test("loadMoreIfNeeded fires when current tile is near the end")
+    func loadMore() async {
+        let fake = FakeGBIFClient()
+        await fake.setSearch { q in
+            if q.offset == 0 {
+                return Page(offset: 0, limit: 50, endOfRecords: false, count: 200,
+                            results: (1...3).map { self.occurrence(key: $0, mediaIds: ["x\($0)"]) },
+                            facets: nil)
+            } else {
+                #expect(q.offset == 50)
+                return Page(offset: 50, limit: 50, endOfRecords: true, count: 200,
+                            results: [self.occurrence(key: 99, mediaIds: ["y"])],
+                            facets: nil)
+            }
+        }
+        let vm = GalleryViewModel(client: fake)
+        await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                        radiusKm: 1, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+        guard case .loaded(let first) = vm.tiles else { Issue.record("first page failed"); return }
+        await vm.loadMoreIfNeeded(currentTileID: first.last!.id)
+        guard case .loaded(let combined) = vm.tiles else { Issue.record("after loadMore"); return }
+        #expect(combined.count == 4)
+        #expect(vm.endOfResults == true)
+    }
+
+    @Test("loadMoreIfNeeded is a no-op when not near the end")
+    func loadMoreSkip() async {
+        let fake = FakeGBIFClient()
+        await fake.setSearch { q in
+            Page(offset: q.offset ?? 0, limit: 50, endOfRecords: false, count: 200,
+                 results: (1...10).map { self.occurrence(key: $0, mediaIds: ["x\($0)"]) },
+                 facets: nil)
+        }
+        let vm = GalleryViewModel(client: fake)
+        await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                        radiusKm: 1, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+        guard case .loaded(let first) = vm.tiles else { Issue.record("first page failed"); return }
+        await vm.loadMoreIfNeeded(currentTileID: first.first!.id)
+        guard case .loaded(let after) = vm.tiles else { Issue.record("expected loaded"); return }
+        #expect(after.count == first.count)
+    }
+
+    @Test("loadMoreIfNeeded stops at maxTiles")
+    func cap() async {
+        let fake = FakeGBIFClient()
+        await fake.setSearch { q in
+            Page(offset: q.offset ?? 0, limit: 50, endOfRecords: false, count: 10_000,
+                 results: (1...50).map {
+                     self.occurrence(key: ((q.offset ?? 0) * 100) + $0, mediaIds: ["m\($0)"])
+                 },
+                 facets: nil)
+        }
+        let vm = GalleryViewModel(client: fake)
+        await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                        radiusKm: 1, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+        for _ in 0..<20 {
+            guard case .loaded(let arr) = vm.tiles, let lastID = arr.last?.id else { break }
+            await vm.loadMoreIfNeeded(currentTileID: lastID)
+            if vm.endOfResults || arr.count >= GalleryViewModel.maxTiles { break }
+        }
+        guard case .loaded(let final) = vm.tiles else { Issue.record("expected loaded"); return }
+        #expect(final.count == GalleryViewModel.maxTiles)
+        #expect(vm.endOfResults == true)
+    }
 }

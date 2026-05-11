@@ -62,6 +62,41 @@ final class GalleryViewModel {
         await task.value
     }
 
+    func loadMoreIfNeeded(currentTileID: String) async {
+        guard isLoadingMore == false, endOfResults == false else { return }
+        guard case .loaded(let current) = tiles else { return }
+        guard current.count < Self.maxTiles else {
+            endOfResults = true
+            return
+        }
+        guard let idx = current.firstIndex(where: { $0.id == currentTileID }),
+              idx >= max(1, current.count - 10) else {
+            return
+        }
+        guard var q = lastQuery else { return }
+        q.offset = nextOffset
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+
+        do {
+            let page = try await client.occurrenceSearch(q)
+            if Task.isCancelled { return }
+            let flat = Self.flatten(page: page)
+            var combined = current + flat
+            if combined.count > Self.maxTiles {
+                combined = Array(combined.prefix(Self.maxTiles))
+                endOfResults = true
+            }
+            tiles = .loaded(combined)
+            nextOffset += Self.pageSize
+            if endOfResults == false {
+                endOfResults = page.endOfRecords ?? false
+            }
+        } catch {
+            // Silent on pagination failure — leave existing tiles in place.
+        }
+    }
+
     static func flatten(page: Page<Occurrence>) -> [GalleryTile] {
         var out: [GalleryTile] = []
         for occ in page.results {
