@@ -54,10 +54,14 @@ struct SpeciesListRow: View {
     @ViewBuilder
     private var kingdomGlyph: some View {
         switch item.kingdom?.lowercased() {
-        case "animalia": Image(systemName: "pawprint.fill")
-        case "plantae":  Image(systemName: "leaf.fill")
-        case "fungi":    Text("🍄")
-        default:         Image(systemName: "circle.dotted")
+        case "animalia":
+            Image(systemName: "pawprint.fill")
+        case "plantae":
+            Image(systemName: "leaf.fill")
+        case "fungi":
+            Image("Mushroom").renderingMode(.template).resizable().scaledToFit().frame(width: 20, height: 20)
+        default:
+            Image(systemName: "circle.dotted")
         }
     }
 }

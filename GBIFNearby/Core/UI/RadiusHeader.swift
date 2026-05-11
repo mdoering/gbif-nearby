@@ -52,8 +52,12 @@ struct RadiusHeader: View {
         switch k.icon {
         case .sfSymbol(let name):
             Image(systemName: name)
-        case .emoji(let glyph):
-            Text(glyph)
+        case .asset(let name):
+            Image(name)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 22, height: 22)
         }
     }
 

@@ -23,18 +23,18 @@ enum KingdomFilter: String, CaseIterable, Sendable, Codable {
     }
 
     /// Rendering hint for the chip icon. SF Symbols cover Animals/Plants well, but
-    /// "allergens" reads as a peanut, not a mushroom. Use Apple's Amanita-muscaria
-    /// emoji for Fungi instead.
+    /// "allergens" reads as a peanut, not a mushroom — so Fungi ships its own
+    /// monochrome template asset that tints alongside the SF Symbols.
     enum Icon: Sendable {
         case sfSymbol(String)
-        case emoji(String)
+        case asset(String)
     }
 
     var icon: Icon {
         switch self {
         case .animals: return .sfSymbol("pawprint.fill")
-        case .plants: return .sfSymbol("leaf.fill")
-        case .fungi: return .emoji("🍄")
+        case .plants:  return .sfSymbol("leaf.fill")
+        case .fungi:   return .asset("Mushroom")
         }
     }
 }
