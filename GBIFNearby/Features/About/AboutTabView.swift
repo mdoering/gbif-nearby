@@ -1,6 +1,11 @@
 import SwiftUI
+import UIKit
+import CoreLocation
 
 struct AboutTabView: View {
+    @Environment(SettingsStore.self) private var settings
+    @Environment(LocationStore.self) private var location
+
     var body: some View {
         NavigationStack {
             Form {
@@ -17,7 +22,26 @@ struct AboutTabView: View {
                 }
 
                 Section("Settings") {
-                    Text("Settings come in Task 5.").foregroundStyle(.tertiary)
+                    @Bindable var settings = settings
+
+                    Picker("Vernacular language", selection: Binding(
+                        get: { settings.vernacularLanguage ?? "" },
+                        set: { settings.vernacularLanguage = $0.isEmpty ? nil : $0 }
+                    )) {
+                        Text("Use device language").tag("")
+                        Divider()
+                        ForEach(Self.languageOptions, id: \.code) { opt in
+                            Text(opt.label).tag(opt.code)
+                        }
+                    }
+
+                    Picker("Distance unit", selection: $settings.distanceUnit) {
+                        ForEach(DistanceUnit.allCases, id: \.self) { unit in
+                            Text(unit.displayName).tag(unit)
+                        }
+                    }
+
+                    locationRow
                 }
 
                 Section("Links") {
@@ -52,6 +76,64 @@ struct AboutTabView: View {
     private var appBuild: String {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
     }
+
+    private struct LanguageOption: Hashable {
+        let code: String
+        let label: String
+    }
+
+    private static let languageOptions: [LanguageOption] = [
+        .init(code: "en", label: "English"),
+        .init(code: "de", label: "Deutsch"),
+        .init(code: "fr", label: "Français"),
+        .init(code: "es", label: "Español"),
+        .init(code: "pt", label: "Português"),
+        .init(code: "it", label: "Italiano"),
+        .init(code: "nl", label: "Nederlands"),
+        .init(code: "sv", label: "Svenska"),
+        .init(code: "ja", label: "日本語"),
+        .init(code: "zh", label: "中文"),
+        .init(code: "ru", label: "Русский"),
+    ]
+
+    @ViewBuilder
+    private var locationRow: some View {
+        switch location.source {
+        case .manual:
+            HStack {
+                Label("Manual pin", systemImage: "mappin.circle.fill")
+                Spacer()
+                Button("Clear") { location.clearManual() }
+                    .foregroundStyle(.tint)
+            }
+        case .device:
+            HStack {
+                Text("Location").foregroundStyle(.secondary)
+                Spacer()
+                Text(authStatusText).foregroundStyle(.secondary).font(.footnote)
+            }
+            if location.authStatus == .denied || location.authStatus == .restricted {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    Link("Open Settings", destination: url)
+                }
+            }
+        }
+    }
+
+    private var authStatusText: String {
+        switch location.authStatus {
+        case .notDetermined: return "Not requested"
+        case .denied: return "Denied"
+        case .restricted: return "Restricted"
+        case .authorizedWhenInUse: return "While using"
+        case .authorizedAlways: return "Always"
+        @unknown default: return "Unknown"
+        }
+    }
 }
 
-#Preview { AboutTabView() }
+#Preview {
+    AboutTabView()
+        .environment(SettingsStore())
+        .environment(LocationStore())
+}
