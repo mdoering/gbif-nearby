@@ -128,4 +128,32 @@ struct SpeciesViewModelTests {
         guard case .loaded(let items) = vm.rows else { Issue.record("expected loaded"); return }
         #expect(items[0].vernacularName == "Daisy")
     }
+
+    @Test("fetchThumbnails populates ThumbnailRef from /occurrence/search?speciesKey=...&mediaType=StillImage")
+    func thumbnails() async {
+        let fake = FakeGBIFClient()
+        await fake.setSearch { q in
+            if q.speciesKey == 1, q.mediaType == "StillImage", q.limit == 1 {
+                let occ = Occurrence(key: 9001, datasetKey: nil, speciesKey: 1, species: nil,
+                                     scientificName: nil, acceptedScientificName: nil,
+                                     kingdom: nil, phylum: nil, class: nil, order: nil, family: nil, genus: nil,
+                                     decimalLatitude: nil, decimalLongitude: nil,
+                                     eventDate: nil, recordedBy: nil, basisOfRecord: nil,
+                                     media: [Media(type: "StillImage", format: nil,
+                                                   identifier: "https://example.org/img.jpg",
+                                                   title: nil, creator: nil, license: nil)])
+                return Page(offset: 0, limit: 1, endOfRecords: true, count: 1, results: [occ], facets: nil)
+            }
+            return Page(offset: 0, limit: 0, endOfRecords: true, count: 0, results: [],
+                        facets: [FacetGroup(field: "SPECIES_KEY", counts: [self.bucket("1", 5)])])
+        }
+        let vm = SpeciesViewModel(client: fake, settings: SettingsStore())
+        await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                        radiusKm: 1, kingdomKey: nil, datasetKey: nil, speciesKey: nil)
+        await vm.fetchThumbnails(limit: 30)
+
+        guard case .loaded(let items) = vm.rows else { Issue.record("expected loaded"); return }
+        #expect(items[0].thumbnail?.occurrenceKey == 9001)
+        #expect(items[0].thumbnail?.mediaIdentifier == "https://example.org/img.jpg")
+    }
 }
