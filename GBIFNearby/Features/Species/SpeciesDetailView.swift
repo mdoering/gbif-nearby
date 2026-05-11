@@ -13,6 +13,32 @@ struct SpeciesDetailView: View {
 
     var body: some View {
         Form {
+            if carouselImages.isEmpty == false {
+                Section {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(Array(carouselImages.enumerated()), id: \.offset) { _, ref in
+                                let url = ImageCacheURL.build(occurrenceKey: ref.occurrenceKey,
+                                                              identifier: ref.mediaIdentifier,
+                                                              size: .width(400))
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let image):
+                                        image.resizable().aspectRatio(contentMode: .fill)
+                                    default:
+                                        Color(.tertiarySystemFill)
+                                    }
+                                }
+                                .frame(width: 160, height: 160)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                        }
+                    }
+                    .listRowInsets(EdgeInsets())
+                }
+                .listRowBackground(Color.clear)
+            }
+
             Section {
                 if let name = item.scientificName ?? item.canonicalName {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -80,8 +106,44 @@ struct SpeciesDetailView: View {
             q.radiusKm = radius.radiusKm
             return try? await client.occurrenceCount(q)
         }()
-        let (g, n) = await (global, nearby)
+        async let media: [ThumbnailRef] = {
+            // Local first; top up globally if too few.
+            var q = OccurrenceQuery()
+            q.speciesKey = item.speciesKey
+            q.mediaType = "StillImage"
+            q.limit = 12
+            if let coord = location.current {
+                q.lat = coord.latitude
+                q.lng = coord.longitude
+                q.radiusKm = radius.radiusKm
+            }
+            var refs = extract(page: try? await client.occurrenceSearch(q))
+            if refs.count < 6 {
+                var fallback = OccurrenceQuery()
+                fallback.speciesKey = item.speciesKey
+                fallback.mediaType = "StillImage"
+                fallback.limit = 12
+                refs += extract(page: try? await client.occurrenceSearch(fallback))
+            }
+            return Array(refs.prefix(12))
+        }()
+
+        let (g, n, m) = await (global, nearby, media)
         globalCount = g
         nearbyCount = n
+        carouselImages = m
+    }
+
+    private func extract(page: Page<Occurrence>?) -> [ThumbnailRef] {
+        guard let results = page?.results else { return [] }
+        var out: [ThumbnailRef] = []
+        for occ in results {
+            for media in occ.media ?? [] where media.type == "StillImage" {
+                if let id = media.identifier {
+                    out.append(ThumbnailRef(occurrenceKey: occ.key, mediaIdentifier: id))
+                }
+            }
+        }
+        return out
     }
 }
