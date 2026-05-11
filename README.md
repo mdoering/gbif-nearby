@@ -21,3 +21,7 @@ SwiftUI, iOS 17+, no third-party dependencies. Data from the [GBIF API](https://
 ## License
 
 [Apache License 2.0](LICENSE)
+
+## Known limitations (in development)
+
+- Manual long-press pin-drop is implemented but is currently hidden behind the location-permission prompt when permission is denied. To be fixed in a later milestone.
