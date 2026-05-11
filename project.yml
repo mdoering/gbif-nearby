@@ -41,17 +41,6 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: org.gbif.nearby
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: NO
-      configs:
-        # XcodeGen's application preset hardcodes the legacy
-        # CODE_SIGN_IDENTITY = "iPhone Developer", which forces development
-        # signing even for Release archives — Xcode Cloud uploads then trip
-        # ITMS-90035 because the binary isn't distribution-signed. Override
-        # with the modern per-config names; CODE_SIGN_STYLE: Automatic at the
-        # project level handles profile selection.
-        Debug:
-          CODE_SIGN_IDENTITY: "Apple Development"
-        Release:
-          CODE_SIGN_IDENTITY: "Apple Distribution"
   GBIFNearbyTests:
     type: bundle.unit-test
     platform: iOS
