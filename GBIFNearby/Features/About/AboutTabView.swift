@@ -5,6 +5,7 @@ import CoreLocation
 struct AboutTabView: View {
     @Environment(SettingsStore.self) private var settings
     @Environment(LocationStore.self) private var location
+    @State private var safariURL: SafariLink?
 
     var body: some View {
         NavigationStack {
@@ -45,7 +46,10 @@ struct AboutTabView: View {
                 }
 
                 Section("Links") {
-                    Text("Links come in Task 6.").foregroundStyle(.tertiary)
+                    linkRow(title: "Open GBIF.org", urlString: "https://www.gbif.org")
+                    linkRow(title: "GBIF Occurrence search", urlString: "https://www.gbif.org/occurrence/search")
+                    linkRow(title: "GBIF API documentation", urlString: "https://techdocs.gbif.org/en/openapi/")
+                    linkRow(title: "GBIF data use guidelines", urlString: "https://www.gbif.org/citation-guidelines")
                 }
 
                 Section("App") {
@@ -66,6 +70,9 @@ struct AboutTabView: View {
             }
             .navigationTitle("About")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(item: $safariURL) { link in
+                SafariView(url: link.url).ignoresSafeArea()
+            }
         }
     }
 
@@ -75,6 +82,11 @@ struct AboutTabView: View {
 
     private var appBuild: String {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+    }
+
+    private struct SafariLink: Identifiable, Hashable {
+        let url: URL
+        var id: URL { url }
     }
 
     private struct LanguageOption: Hashable {
@@ -117,6 +129,22 @@ struct AboutTabView: View {
                     Link("Open Settings", destination: url)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func linkRow(title: String, urlString: String) -> some View {
+        if let url = URL(string: urlString) {
+            Button {
+                safariURL = SafariLink(url: url)
+            } label: {
+                HStack {
+                    Text(title)
+                    Spacer()
+                    Image(systemName: "safari").foregroundStyle(.secondary)
+                }
+            }
+            .buttonStyle(.plain)
         }
     }
 
