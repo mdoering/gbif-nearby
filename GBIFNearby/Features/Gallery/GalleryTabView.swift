@@ -66,7 +66,7 @@ struct GalleryTabView: View {
                 }
                 .refreshable { await refresh() }
                 .navigationDestination(item: $selectedTile) { sel in
-                    OccurrenceDetailViewStub(tiles: items, startIndex: sel.index)
+                    OccurrenceDetailView(tiles: items, startIndex: sel.index)
                 }
             }
         case .failed(let err):
@@ -134,15 +134,4 @@ struct GalleryTabView: View {
 struct TileSelection: Identifiable, Hashable {
     let index: Int
     var id: Int { index }
-}
-
-// Temporary stub — replaced by Task 6.
-private struct OccurrenceDetailViewStub: View {
-    let tiles: [GalleryTile]
-    let startIndex: Int
-    var body: some View {
-        Text("Detail viewer for tile #\(startIndex) (coming in Task 6)")
-            .navigationTitle("Occurrence")
-            .navigationBarTitleDisplayMode(.inline)
-    }
 }
