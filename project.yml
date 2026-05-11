@@ -41,6 +41,17 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: org.gbif.nearby
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: NO
+      configs:
+        # Xcode 26's "Automatic" signing no longer performs the legacy
+        # Developer -> Distribution swap on archive, so local archives kept
+        # signing with the Apple Development cert and failed App Store
+        # validation (ITMS-90035). Pin Release to Manual signing with the
+        # Distribution cert + the App Store profile we created in the
+        # developer portal. Debug stays Automatic so day-to-day dev works.
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: "Apple Distribution"
+          PROVISIONING_PROFILE_SPECIFIER: "GBIF Nearby App Store"
   GBIFNearbyTests:
     type: bundle.unit-test
     platform: iOS
