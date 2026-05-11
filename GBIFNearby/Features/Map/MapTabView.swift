@@ -1,6 +1,5 @@
 import SwiftUI
 import CoreLocation
-import MapKit
 
 struct MapTabView: View {
     @Environment(LocationStore.self) private var location
@@ -12,7 +11,7 @@ struct MapTabView: View {
     @State private var viewModel: MapViewModel?
     @State private var selectedOccurrence: Occurrence?
     @State private var pinDebouncer = AsyncDebouncer(delay: .milliseconds(400))
-    @State private var lastRegion: MKCoordinateRegion?
+    @State private var regionDebouncer = AsyncDebouncer(delay: .milliseconds(500))
     @State private var pinFetchEnabled = false
 
     var body: some View {
@@ -57,9 +56,8 @@ struct MapTabView: View {
                 onPinTap: { selectedOccurrence = $0 },
                 onLongPress: { coord in location.setManual(coord) },
                 onRegionChange: { region in
-                    lastRegion = region
-                    pinFetchEnabled = region.span.latitudeDelta < 0.5 // ~55 km diag
-                    scheduleFetch()
+                    pinFetchEnabled = region.span.latitudeDelta < 0.2 // ~22 km height, ~31 km diagonal
+                    scheduleRegionFetch()
                 }
             )
         } else {
@@ -77,6 +75,12 @@ struct MapTabView: View {
     private func scheduleFetch() {
         Task {
             await pinDebouncer.schedule { await self.fetchIfReady() }
+        }
+    }
+
+    private func scheduleRegionFetch() {
+        Task {
+            await regionDebouncer.schedule { await self.fetchIfReady() }
         }
     }
 
