@@ -3,13 +3,36 @@ import SwiftUI
 struct RootTabView: View {
     var body: some View {
         TabView {
-            Text("Map").tabItem { Label("Map", systemImage: "map") }
-            Text("Species").tabItem { Label("Species", systemImage: "leaf") }
-            Text("Gallery").tabItem { Label("Gallery", systemImage: "photo.on.rectangle") }
-            Text("Datasets").tabItem { Label("Datasets", systemImage: "tray.full") }
-            Text("About").tabItem { Label("About", systemImage: "info.circle") }
+            placeholder("Map (next task)")
+                .tabItem { Label("Map", systemImage: "map") }
+            placeholder("Species")
+                .tabItem { Label("Species", systemImage: "leaf") }
+            placeholder("Gallery")
+                .tabItem { Label("Gallery", systemImage: "photo.on.rectangle") }
+            placeholder("Datasets")
+                .tabItem { Label("Datasets", systemImage: "tray.full") }
+            placeholder("About")
+                .tabItem { Label("About", systemImage: "info.circle") }
+        }
+    }
+
+    private func placeholder(_ label: String) -> some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                RadiusHeader()
+                FocusFilterChip()
+                Spacer()
+                Text(label).foregroundStyle(.secondary)
+                Spacer()
+            }
         }
     }
 }
 
-#Preview { RootTabView() }
+#Preview {
+    RootTabView()
+        .environment(LocationStore())
+        .environment(RadiusStore())
+        .environment(TaxonFilterStore())
+        .environment(FocusFilterStore())
+}
