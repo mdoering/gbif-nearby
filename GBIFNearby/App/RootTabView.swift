@@ -15,7 +15,7 @@ struct RootTabView: View {
             GalleryTabView()
                 .tabItem { Label("Gallery", systemImage: "photo.on.rectangle") }
                 .tag(Tab.gallery)
-            placeholder("Datasets")
+            DatasetsTabView()
                 .tabItem { Label("Datasets", systemImage: "tray.full") }
                 .tag(Tab.datasets)
             placeholder("About")
