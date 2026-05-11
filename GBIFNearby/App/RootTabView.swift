@@ -12,7 +12,7 @@ struct RootTabView: View {
             SpeciesTabView()
                 .tabItem { Label("Species", systemImage: "leaf") }
                 .tag(Tab.species)
-            placeholder("Gallery")
+            GalleryTabView()
                 .tabItem { Label("Gallery", systemImage: "photo.on.rectangle") }
                 .tag(Tab.gallery)
             placeholder("Datasets")
