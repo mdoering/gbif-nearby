@@ -67,6 +67,7 @@ struct GBIFClientTests {
             let qs = url.query ?? ""
             #expect(qs.contains("q=Bomb"))
             #expect(qs.contains("higherTaxonKey=1"))
+            #expect(qs.contains("datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c"))
             let body = """
             [
               {"key": 5231190, "scientificName": "Bombus terrestris", "canonicalName": "Bombus terrestris", "rank": "SPECIES"},

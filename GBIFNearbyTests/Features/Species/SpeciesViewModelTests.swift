@@ -3,6 +3,13 @@ import Foundation
 import CoreLocation
 @testable import GBIFNearby
 
+/// Thread-safe call counter for tests that want a handler to behave differently
+/// on the Nth invocation (e.g. simulate "fail once, then succeed").
+private actor Counter {
+    private var n = 0
+    func next() -> Int { n += 1; return n }
+}
+
 @MainActor
 @Suite("SpeciesViewModel — facet")
 struct SpeciesViewModelTests {
@@ -152,6 +159,68 @@ struct SpeciesViewModelTests {
         #expect(items[0].scientificName == nil)
         #expect(items[1].scientificName == "Species 2")
         #expect(items[1].vernacularName == "Common 2")
+    }
+
+    @Test("enrichRowIfNeeded retries after a failed species fetch")
+    func enrichRetriesOnFailure() async {
+        let fake = FakeGBIFClient()
+        await fake.setSearch { _ in
+            Page(offset: 0, limit: 0, endOfRecords: true, count: 0, results: [],
+                 facets: [FacetGroup(field: "SPECIES_KEY", counts: [self.bucket("7", 1)])])
+        }
+        await fake.setVernacular { _, _ in [] }
+        // First call: simulate a timeout / network error. Second call: succeed.
+        let attempt = Counter()
+        await fake.setSpecies { key in
+            let n = await attempt.next()
+            if n == 1 { throw GBIFError.network(URLError(.timedOut)) }
+            return self.sampleSpecies(key: key, sci: "Species \(key)")
+        }
+        let vm = SpeciesViewModel(client: fake, settings: SettingsStore())
+        await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                        radiusKm: 1, taxonKey: nil, datasetKey: nil, speciesKey: nil)
+
+        await vm.enrichRowIfNeeded(speciesKey: 7)  // fails, must remain retry-eligible
+        await vm.enrichRowIfNeeded(speciesKey: 7)  // succeeds this time
+
+        guard case .loaded(let items) = vm.rows else { Issue.record("expected loaded"); return }
+        #expect(items[0].scientificName == "Species 7")
+        let recorded = await fake.recordedSpeciesKeys
+        #expect(recorded == [7, 7])
+    }
+
+    @Test("fetchThumbnailIfNeeded retries after a failed search")
+    func thumbnailRetriesOnFailure() async {
+        let fake = FakeGBIFClient()
+        let attempt = Counter()
+        await fake.setSearch { q in
+            // The facet search at refresh-time runs first; let it through.
+            if q.facet == "speciesKey" {
+                return Page(offset: 0, limit: 0, endOfRecords: true, count: 0, results: [],
+                            facets: [FacetGroup(field: "SPECIES_KEY", counts: [self.bucket("11", 1)])])
+            }
+            // Thumbnail probes: fail first, succeed second.
+            let n = await attempt.next()
+            if n == 1 { throw GBIFError.network(URLError(.timedOut)) }
+            let occ = Occurrence(key: 42, datasetKey: nil, speciesKey: 11, species: nil,
+                                 scientificName: nil, acceptedScientificName: nil,
+                                 kingdom: nil, phylum: nil, class: nil, order: nil, family: nil, genus: nil,
+                                 decimalLatitude: nil, decimalLongitude: nil,
+                                 eventDate: nil, recordedBy: nil, basisOfRecord: nil,
+                                 media: [Media(type: "StillImage", format: nil,
+                                               identifier: "https://example.org/img.jpg",
+                                               title: nil, creator: nil, license: nil)])
+            return Page(offset: 0, limit: 1, endOfRecords: true, count: 1, results: [occ], facets: nil)
+        }
+        let vm = SpeciesViewModel(client: fake, settings: SettingsStore())
+        await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                        radiusKm: 1, taxonKey: nil, datasetKey: nil, speciesKey: nil)
+
+        await vm.fetchThumbnailIfNeeded(speciesKey: 11)  // fails
+        await vm.fetchThumbnailIfNeeded(speciesKey: 11)  // succeeds
+
+        guard case .loaded(let items) = vm.rows else { Issue.record("expected loaded"); return }
+        #expect(items[0].thumbnail?.occurrenceKey == 42)
     }
 
     @Test("enrichRowIfNeeded dedupes repeat calls for the same key")

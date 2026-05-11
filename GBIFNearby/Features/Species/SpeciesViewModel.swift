@@ -119,7 +119,12 @@ final class SpeciesViewModel {
         let vernacular = await vernacularFetch
 
         vernacularCache[cacheKey] = vernacular
-        enrichedKeys.insert(speciesKey)
+        // Only mark as enriched when the species call actually returned. A nil result
+        // here means the request errored or timed out (try? swallowed it) — leaving the
+        // key retry-eligible so the next .onAppear has another shot.
+        if species != nil {
+            enrichedKeys.insert(speciesKey)
+        }
 
         guard case .loaded(var items) = rows,
               let idx = items.firstIndex(where: { $0.speciesKey == speciesKey }) else { return }
@@ -151,7 +156,12 @@ final class SpeciesViewModel {
         q.mediaType = "StillImage"
         q.limit = 1
         let page = try? await client.occurrenceSearch(q)
-        thumbnailedKeys.insert(speciesKey)
+        // Same retry rule as enrichRowIfNeeded: only mark done when the request
+        // succeeded. A successful "no media for this species" response is final;
+        // a network failure should not be.
+        if page != nil {
+            thumbnailedKeys.insert(speciesKey)
+        }
 
         guard let occ = page?.results.first,
               let media = occ.media?.first(where: { $0.type == "StillImage" }),

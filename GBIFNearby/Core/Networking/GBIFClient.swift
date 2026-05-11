@@ -64,9 +64,16 @@ actor GBIFClient: GBIFClienting {
         return page.results
     }
 
+    /// GBIF Backbone Taxonomy dataset key. Restricting suggestions to this dataset means
+    /// every returned `key` is a backbone usageKey — the same identifier space used by
+    /// `/occurrence/search?taxonKey=…` — so a picked taxon filters reliably. Without it,
+    /// /species/suggest may return keys from other source checklists that don't match.
+    static let backboneDatasetKey = "d7dddbf4-2cf0-4f39-9b2a-bb099caae36c"
+
     func taxonSuggest(query: String, higherTaxonKey: Int?) async throws -> [TaxonSuggestion] {
         var items: [URLQueryItem] = [
             .init(name: "q", value: query),
+            .init(name: "datasetKey", value: Self.backboneDatasetKey),
             .init(name: "limit", value: "12"),
         ]
         if let higherTaxonKey {

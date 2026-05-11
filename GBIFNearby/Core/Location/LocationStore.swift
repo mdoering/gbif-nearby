@@ -53,6 +53,19 @@ extension LocationStore: @preconcurrency CLLocationManagerDelegate {
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard source == .device, let loc = locations.last else { return }
+        // Drop invalid / degraded fixes. CoreLocation's distanceFilter compares
+        // *reported* coords; a 200 m-accuracy fix that jitters by 30 m every
+        // second is enough to defeat the OS-level filter and reintroduce the
+        // per-second refetch storm we're trying to avoid.
+        if loc.horizontalAccuracy <= 0 || loc.horizontalAccuracy > 200 { return }
+        // Software-level distance gate against the last published coordinate.
+        // Mirrors what distanceFilter is meant to enforce, but stays correct
+        // even when the OS delivers an update that crossed the threshold
+        // through noise rather than real motion.
+        if let prev = current {
+            let prevCL = CLLocation(latitude: prev.latitude, longitude: prev.longitude)
+            if loc.distance(from: prevCL) < 25 { return }
+        }
         current = loc.coordinate
     }
 
