@@ -44,7 +44,7 @@ struct SpeciesTabView: View {
                 List {
                     ForEach(items) { item in
                         NavigationLink {
-                            SpeciesDetailViewStub(item: item)
+                            SpeciesDetailView(item: item)
                         } label: {
                             SpeciesListRow(item: item)
                         }
@@ -117,15 +117,5 @@ struct SpeciesTabView: View {
                          speciesKey: focus.speciesKey)
         await vm.enrichTopRows(limit: 30)
         await vm.fetchThumbnails(limit: 30)
-    }
-}
-
-// Temporary stub for the row navigation destination; replaced by Task 12.
-private struct SpeciesDetailViewStub: View {
-    let item: SpeciesRowItem
-    var body: some View {
-        Text("Detail for #\(item.speciesKey) (coming in Task 12)")
-            .navigationTitle("Species")
-            .navigationBarTitleDisplayMode(.inline)
     }
 }
