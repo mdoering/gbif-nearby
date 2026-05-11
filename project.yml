@@ -46,6 +46,8 @@ targets:
       - path: GBIFNearbyTests
     dependencies:
       - target: GBIFNearby
+    info:
+      path: GBIFNearbyTests/Info.plist
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.gbif.nearby.tests
