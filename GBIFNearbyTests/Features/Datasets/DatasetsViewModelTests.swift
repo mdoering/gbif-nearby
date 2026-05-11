@@ -105,4 +105,23 @@ struct DatasetsViewModelTests {
         default: Issue.record("expected loaded")
         }
     }
+
+    @Test("vicinity search filters enriched rows by title (case-insensitive)")
+    func vicinitySearchFilter() async {
+        let fake = FakeGBIFClient()
+        await fake.setSearch { _ in
+            Page(offset: 0, limit: 0, endOfRecords: true, count: 0, results: [],
+                 facets: [FacetGroup(field: "DATASET_KEY",
+                                     counts: [self.bucket("a", 5), self.bucket("b", 3)])])
+        }
+        await fake.setDataset { key in
+            self.sampleDataset(key: key, title: key == "a" ? "Birds of Berlin" : "Plants of Madrid")
+        }
+        let vm = DatasetsViewModel(client: fake, settings: freshSettings())
+        await vm.refresh(at: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                        radiusKm: 1, kingdomKey: nil, searchText: "BERLIN")
+        guard case .loaded(let items) = vm.rows else { Issue.record("expected loaded"); return }
+        #expect(items.count == 1)
+        #expect(items[0].key == "a")
+    }
 }
