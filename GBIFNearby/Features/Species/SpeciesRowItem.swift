@@ -9,6 +9,11 @@ struct SpeciesRowItem: Identifiable, Sendable, Equatable {
     var authorship: String?
     var vernacularName: String?
     var kingdom: String?
+    var phylum: String?
+    var classRank: String?     // swift's `class` keyword forces a renamed property
+    var order: String?
+    var family: String?
+    var genus: String?
     var thumbnail: ThumbnailRef?
 
     var id: Int { speciesKey }

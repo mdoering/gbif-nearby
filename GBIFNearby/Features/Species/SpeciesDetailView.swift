@@ -1,4 +1,5 @@
 import SwiftUI
+import SafariServices
 
 struct SpeciesDetailView: View {
     let item: SpeciesRowItem
@@ -55,9 +56,13 @@ struct SpeciesDetailView: View {
                 }
             }
 
-            if let kingdom = item.kingdom {
+            let crumbs: [String] = [item.kingdom, item.phylum, item.classRank, item.order, item.family, item.genus]
+                .compactMap { $0 }
+            if crumbs.isEmpty == false {
                 Section("Classification") {
-                    Text(kingdom)
+                    Text(crumbs.joined(separator: " › "))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -119,7 +124,6 @@ struct SpeciesDetailView: View {
             return try? await client.occurrenceCount(q)
         }()
         async let media: [ThumbnailRef] = {
-            // Local first; top up globally if too few.
             var q = OccurrenceQuery()
             q.speciesKey = item.speciesKey
             q.mediaType = "StillImage"
@@ -137,7 +141,7 @@ struct SpeciesDetailView: View {
                 fallback.limit = 12
                 refs += extract(page: try? await client.occurrenceSearch(fallback))
             }
-            return Array(refs.prefix(12))
+            return dedup(refs).prefix(12).map { $0 }
         }()
 
         let (g, n, m) = await (global, nearby, media)
@@ -155,6 +159,16 @@ struct SpeciesDetailView: View {
                     out.append(ThumbnailRef(occurrenceKey: occ.key, mediaIdentifier: id))
                 }
             }
+        }
+        return out
+    }
+
+    private func dedup(_ refs: [ThumbnailRef]) -> [ThumbnailRef] {
+        var seen = Set<String>()
+        var out: [ThumbnailRef] = []
+        for r in refs {
+            let key = "\(r.occurrenceKey)|\(r.mediaIdentifier)"
+            if seen.insert(key).inserted { out.append(r) }
         }
         return out
     }

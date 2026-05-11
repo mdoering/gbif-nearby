@@ -8,6 +8,8 @@ final class SpeciesViewModel {
     private let client: any GBIFClienting
     private let settings: SettingsStore
     private var task: Task<Void, Never>?
+    private var enrichTask: Task<Void, Never>?
+    private var thumbnailTask: Task<Void, Never>?
     private var vernacularCache: [VernacularCacheKey: String?] = [:]
 
     var rows: Loading<[SpeciesRowItem]> = .idle
@@ -20,6 +22,8 @@ final class SpeciesViewModel {
     func refresh(at coord: CLLocationCoordinate2D, radiusKm: Double,
                  kingdomKey: Int?, datasetKey: String?, speciesKey: Int?) async {
         task?.cancel()
+        enrichTask?.cancel()
+        thumbnailTask?.cancel()
         rows = .loading
 
         var q = OccurrenceQuery()
@@ -67,39 +71,49 @@ final class SpeciesViewModel {
         let cacheSnapshot = vernacularCache
         let captureClient = client
 
-        let enriched = await withTaskGroup(of: (Int, SpeciesRowItem).self, returning: [SpeciesRowItem].self) { group in
-            for (index, item) in head.enumerated() {
-                group.addTask { @Sendable in
-                    var row = item
-                    if let s = try? await captureClient.species(key: item.speciesKey) {
-                        row.scientificName = s.scientificName ?? s.canonicalName
-                        row.canonicalName = s.canonicalName
-                        row.authorship = s.authorship
-                        row.kingdom = s.kingdom
+        enrichTask?.cancel()
+        let work = Task { @MainActor [weak self] in
+            guard let self else { return }
+            let enriched = await withTaskGroup(of: (Int, SpeciesRowItem).self, returning: [SpeciesRowItem].self) { group in
+                for (index, item) in head.enumerated() {
+                    group.addTask { @Sendable in
+                        var row = item
+                        if let s = try? await captureClient.species(key: item.speciesKey) {
+                            row.scientificName = s.scientificName ?? s.canonicalName
+                            row.canonicalName = s.canonicalName
+                            row.authorship = s.authorship
+                            row.kingdom = s.kingdom
+                            row.phylum = s.phylum
+                            row.classRank = s.`class`
+                            row.order = s.order
+                            row.family = s.family
+                            row.genus = s.genus
+                        }
+                        let cacheKey = VernacularCacheKey(speciesKey: item.speciesKey, language: lang)
+                        if let cached = cacheSnapshot[cacheKey] {
+                            row.vernacularName = cached
+                        } else {
+                            row.vernacularName = await Self.resolveVernacular(
+                                speciesKey: item.speciesKey, language: lang, client: captureClient)
+                        }
+                        return (index, row)
                     }
-                    let cacheKey = VernacularCacheKey(speciesKey: item.speciesKey, language: lang)
-                    if let cached = cacheSnapshot[cacheKey] {
-                        row.vernacularName = cached
-                    } else {
-                        row.vernacularName = await Self.resolveVernacular(
-                            speciesKey: item.speciesKey, language: lang, client: captureClient)
-                    }
-                    return (index, row)
                 }
+                var result = head
+                for await (index, row) in group {
+                    if index < result.count { result[index] = row }
+                }
+                return result
             }
-            var result = head
-            for await (index, row) in group {
-                if index < result.count { result[index] = row }
+            if Task.isCancelled { return }
+            self.rows = .loaded(enriched + tail)
+            for row in enriched {
+                let cacheKey = VernacularCacheKey(speciesKey: row.speciesKey, language: lang)
+                self.vernacularCache[cacheKey] = row.vernacularName
             }
-            return result
         }
-
-        if Task.isCancelled { return }
-        rows = .loaded(enriched + tail)
-        for row in enriched {
-            let cacheKey = VernacularCacheKey(speciesKey: row.speciesKey, language: lang)
-            vernacularCache[cacheKey] = row.vernacularName
-        }
+        enrichTask = work
+        await work.value
     }
 
     private static func resolveVernacular(speciesKey: Int, language: String, client: any GBIFClienting) async -> String? {
@@ -120,32 +134,38 @@ final class SpeciesViewModel {
         let tail = Array(items.dropFirst(limit))
         let captureClient = client
 
-        let enriched = await withTaskGroup(of: (Int, SpeciesRowItem).self, returning: [SpeciesRowItem].self) { group in
-            for (index, item) in head.enumerated() {
-                group.addTask { @Sendable in
-                    var row = item
-                    if row.thumbnail != nil { return (index, row) }
-                    var q = OccurrenceQuery()
-                    q.speciesKey = item.speciesKey
-                    q.mediaType = "StillImage"
-                    q.limit = 1
-                    let page = try? await captureClient.occurrenceSearch(q)
-                    if let occ = page?.results.first,
-                       let media = occ.media?.first(where: { $0.type == "StillImage" }),
-                       let id = media.identifier {
-                        row.thumbnail = ThumbnailRef(occurrenceKey: occ.key, mediaIdentifier: id)
+        thumbnailTask?.cancel()
+        let work = Task { @MainActor [weak self] in
+            guard let self else { return }
+            let enriched = await withTaskGroup(of: (Int, SpeciesRowItem).self, returning: [SpeciesRowItem].self) { group in
+                for (index, item) in head.enumerated() {
+                    group.addTask { @Sendable in
+                        var row = item
+                        if row.thumbnail != nil { return (index, row) }
+                        var q = OccurrenceQuery()
+                        q.speciesKey = item.speciesKey
+                        q.mediaType = "StillImage"
+                        q.limit = 1
+                        let page = try? await captureClient.occurrenceSearch(q)
+                        if let occ = page?.results.first,
+                           let media = occ.media?.first(where: { $0.type == "StillImage" }),
+                           let id = media.identifier {
+                            row.thumbnail = ThumbnailRef(occurrenceKey: occ.key, mediaIdentifier: id)
+                        }
+                        return (index, row)
                     }
-                    return (index, row)
                 }
+                var result = head
+                for await (index, row) in group {
+                    if index < result.count { result[index] = row }
+                }
+                return result
             }
-            var result = head
-            for await (index, row) in group {
-                if index < result.count { result[index] = row }
-            }
-            return result
+            if Task.isCancelled { return }
+            self.rows = .loaded(enriched + tail)
         }
-        if Task.isCancelled { return }
-        rows = .loaded(enriched + tail)
+        thumbnailTask = work
+        await work.value
     }
 }
 
