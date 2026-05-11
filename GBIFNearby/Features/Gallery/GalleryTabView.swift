@@ -6,6 +6,7 @@ struct GalleryTabView: View {
     @Environment(RadiusStore.self) private var radius
     @Environment(TaxonFilterStore.self) private var taxon
     @Environment(FocusFilterStore.self) private var focus
+    @Environment(SettingsStore.self) private var settings
     @Environment(\.gbifClient) private var client
 
     @State private var viewModel: GalleryViewModel?
@@ -98,7 +99,7 @@ struct GalleryTabView: View {
         VStack(spacing: 8) {
             Spacer()
             Image(systemName: "photo.on.rectangle").font(.largeTitle).foregroundStyle(.secondary)
-            Text("No photos within \(String(format: "%.1f", radius.radiusKm)) km.")
+            Text("No photos within \(DistanceFormatter.format(km: radius.radiusKm, unit: settings.distanceUnit)).")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
             Text("Try a larger radius or different group.")

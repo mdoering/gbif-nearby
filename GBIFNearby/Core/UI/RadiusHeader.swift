@@ -3,6 +3,7 @@ import SwiftUI
 struct RadiusHeader: View {
     @Environment(RadiusStore.self) private var radiusStore
     @Environment(TaxonFilterStore.self) private var taxonStore
+    @Environment(SettingsStore.self) private var settings
 
     var body: some View {
         @Bindable var radiusStore = radiusStore
@@ -11,7 +12,7 @@ struct RadiusHeader: View {
             HStack(spacing: 12) {
                 Text("Radius").font(.caption).foregroundStyle(.secondary)
                 Slider(value: $radiusStore.radiusKm, in: RadiusStore.minValue...RadiusStore.maxValue)
-                Text(formatted(radiusStore.radiusKm))
+                Text(DistanceFormatter.format(km: radiusStore.radiusKm, unit: settings.distanceUnit))
                     .font(.caption.monospacedDigit())
                     .frame(width: 64, alignment: .trailing)
             }
@@ -39,13 +40,11 @@ struct RadiusHeader: View {
         .background(.bar)
     }
 
-    private func formatted(_ km: Double) -> String {
-        String(format: "%.1f km", km)
-    }
 }
 
 #Preview {
     RadiusHeader()
         .environment(RadiusStore())
         .environment(TaxonFilterStore())
+        .environment(SettingsStore())
 }

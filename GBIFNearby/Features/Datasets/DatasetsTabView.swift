@@ -85,7 +85,7 @@ struct DatasetsTabView: View {
             Image(systemName: "tray").font(.largeTitle).foregroundStyle(.secondary)
             Text(settings.datasetsGlobal
                  ? "No datasets match \"\(searchText)\"."
-                 : "No datasets have records within \(String(format: "%.1f", radius.radiusKm)) km.")
+                 : "No datasets have records within \(DistanceFormatter.format(km: radius.radiusKm, unit: settings.distanceUnit)).")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal)

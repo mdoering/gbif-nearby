@@ -84,7 +84,7 @@ struct SpeciesTabView: View {
         VStack(spacing: 8) {
             Spacer()
             Image(systemName: "leaf").font(.largeTitle).foregroundStyle(.secondary)
-            Text("No species recorded within \(String(format: "%.1f", radius.radiusKm)) km.")
+            Text("No species recorded within \(DistanceFormatter.format(km: radius.radiusKm, unit: settings.distanceUnit)).")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
             Text("Try a larger radius or different group.")

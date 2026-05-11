@@ -8,6 +8,7 @@ struct SpeciesDetailView: View {
     @Environment(\.gbifClient) private var client
     @Environment(FocusFilterStore.self) private var focus
     @Environment(TabSelectionStore.self) private var tabSelection
+    @Environment(SettingsStore.self) private var settings
 
     @State private var globalCount: Int?
     @State private var nearbyCount: Int?
@@ -67,7 +68,7 @@ struct SpeciesDetailView: View {
             }
 
             Section("Occurrences") {
-                statRow("Within \(String(format: "%.1f", radius.radiusKm)) km", value: item.count)
+                statRow("Within \(DistanceFormatter.format(km: radius.radiusKm, unit: settings.distanceUnit))", value: item.count)
                 statRow("Total on GBIF", value: globalCount)
                 statRow("Within radius (live)", value: nearbyCount)
             }

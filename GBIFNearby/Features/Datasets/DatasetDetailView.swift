@@ -9,6 +9,7 @@ struct DatasetDetailView: View {
     @Environment(FocusFilterStore.self) private var focus
     @Environment(TabSelectionStore.self) private var tabSelection
     @Environment(\.gbifClient) private var client
+    @Environment(SettingsStore.self) private var settings
 
     @State private var dataset: Dataset?
     @State private var loadError: GBIFError?
@@ -35,7 +36,7 @@ struct DatasetDetailView: View {
             Section("Counts") {
                 statRow("Total records", value: totalCount)
                 statRow("Georeferenced", value: georefCount)
-                statRow("Within \(String(format: "%.1f", radius.radiusKm)) km", value: nearbyCount)
+                statRow("Within \(DistanceFormatter.format(km: radius.radiusKm, unit: settings.distanceUnit))", value: nearbyCount)
             }
             if let lic = dataset?.license ?? item.license {
                 Section("License") {
