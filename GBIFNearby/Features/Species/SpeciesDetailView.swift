@@ -5,6 +5,8 @@ struct SpeciesDetailView: View {
     @Environment(LocationStore.self) private var location
     @Environment(RadiusStore.self) private var radius
     @Environment(\.gbifClient) private var client
+    @Environment(FocusFilterStore.self) private var focus
+    @Environment(TabSelectionStore.self) private var tabSelection
 
     @State private var globalCount: Int?
     @State private var nearbyCount: Int?
@@ -67,6 +69,16 @@ struct SpeciesDetailView: View {
 
             Section {
                 Button("View on GBIF.org") { showSafari = true }
+            }
+
+            Section {
+                Button {
+                    let label = item.scientificName ?? item.canonicalName ?? "#\(item.speciesKey)"
+                    focus.set(speciesKey: item.speciesKey, label: label)
+                    tabSelection.current = .map
+                } label: {
+                    Label("Show on map", systemImage: "map")
+                }
             }
         }
         .navigationTitle("Species")
