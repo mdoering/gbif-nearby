@@ -54,4 +54,20 @@ struct VernacularResolverTests {
         let chosen = VernacularResolver.choose(from: names, language: "fr")
         #expect(chosen == nil)
     }
+
+    @Test("choose: 2-letter request matches a 3-letter record (real GBIF shape)")
+    func choose2vs3() {
+        let names = [
+            VernacularName(vernacularName: "Common House Sparrow", language: "eng"),
+            VernacularName(vernacularName: "Haussperling", language: "deu"),
+        ]
+        #expect(VernacularResolver.choose(from: names, language: "de") == "Haussperling")
+        #expect(VernacularResolver.choose(from: names, language: "fr") == "Common House Sparrow")
+    }
+
+    @Test("choose: 3-letter request matches a 2-letter record")
+    func choose3vs2() {
+        let names = [VernacularName(vernacularName: "Erdhummel", language: "de")]
+        #expect(VernacularResolver.choose(from: names, language: "deu") == "Erdhummel")
+    }
 }
