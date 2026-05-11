@@ -11,6 +11,8 @@ struct GBIFNearbyApp: App {
                 .environment(env.radiusStore)
                 .environment(env.taxonStore)
                 .environment(env.focusStore)
+                .environment(env.settingsStore)
+                .environment(env.tabSelectionStore)
                 .environment(\.gbifClient, env.client)
                 .task { env.locationStore.requestAuthorization() }
         }

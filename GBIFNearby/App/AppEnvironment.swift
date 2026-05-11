@@ -6,6 +6,8 @@ struct AppEnvironment {
     let radiusStore: RadiusStore
     let taxonStore: TaxonFilterStore
     let focusStore: FocusFilterStore
+    let settingsStore: SettingsStore
+    let tabSelectionStore: TabSelectionStore
     let client: any GBIFClienting
 
     static func production() -> AppEnvironment {
@@ -14,6 +16,8 @@ struct AppEnvironment {
             radiusStore: RadiusStore(),
             taxonStore: TaxonFilterStore(),
             focusStore: FocusFilterStore(),
+            settingsStore: SettingsStore(),
+            tabSelectionStore: TabSelectionStore(),
             client: GBIFClient()
         )
     }
