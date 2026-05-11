@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreLocation
 import MapKit
+import UIKit
 
 struct MapTabView: View {
     @Environment(LocationStore.self) private var location
@@ -50,25 +51,63 @@ struct MapTabView: View {
     @ViewBuilder
     private var map: some View {
         if let center = location.current {
-            GBIFMapView(
-                center: center,
-                radiusKm: radius.radiusKm,
-                taxonKey: taxon.selected.taxonKey,
-                datasetKey: focus.datasetKey,
-                speciesKey: focus.speciesKey,
-                pins: viewModel?.pins.value ?? [],
-                mapType: mapType,
-                recenterID: recenterID,
-                onPinTap: { selectedOccurrence = $0 },
-                onLongPress: { coord in location.setManual(coord) },
-                onRegionChange: { region in
-                    pinFetchEnabled = region.span.latitudeDelta < 0.2 // ~22 km height, ~31 km diagonal
-                    scheduleRegionFetch()
-                }
-            )
+            mapView(center: center)
         } else {
-            LocationPrompt()
+            switch location.authStatus {
+            case .denied, .restricted:
+                ZStack(alignment: .top) {
+                    mapView(center: Self.defaultCenter)
+                    deniedBanner
+                        .padding(.top, 8)
+                        .padding(.horizontal, 12)
+                }
+            default:
+                LocationPrompt()
+            }
         }
+    }
+
+    // Sensible default when permission is denied and the user hasn't dropped a pin yet.
+    // GBIFMapView zooms based on the current radius (default 5 km → ~15 km span), so a
+    // "wide world view" wouldn't render here; the user pans/pinches and long-presses to relocate.
+    private static let defaultCenter = CLLocationCoordinate2D(latitude: 52.52, longitude: 13.40) // Berlin
+
+    @ViewBuilder
+    private func mapView(center: CLLocationCoordinate2D) -> some View {
+        GBIFMapView(
+            center: center,
+            radiusKm: radius.radiusKm,
+            taxonKey: taxon.selected.taxonKey,
+            datasetKey: focus.datasetKey,
+            speciesKey: focus.speciesKey,
+            pins: viewModel?.pins.value ?? [],
+            mapType: mapType,
+            recenterID: recenterID,
+            onPinTap: { selectedOccurrence = $0 },
+            onLongPress: { coord in location.setManual(coord) },
+            onRegionChange: { region in
+                pinFetchEnabled = region.span.latitudeDelta < 0.2
+                scheduleRegionFetch()
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var deniedBanner: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Location is off")
+                .font(.footnote.bold())
+            Text("Long-press anywhere on the map to drop a pin, or enable location in Settings.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                Link("Open Settings", destination: url).font(.caption)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .padding(.top, 88) // sits below RadiusHeader + chip rows
     }
 
     private var mapControls: some View {
@@ -152,21 +191,10 @@ private struct LocationPrompt: View {
         VStack(spacing: 16) {
             Spacer()
             Image(systemName: "location.circle").font(.system(size: 56)).foregroundStyle(.secondary)
-            switch location.authStatus {
-            case .notDetermined:
-                Text("GBIF Nearby uses your location to show records around you.")
-                    .multilineTextAlignment(.center)
-                Button("Allow location") { location.requestAuthorization() }
-                    .buttonStyle(.borderedProminent)
-            case .denied, .restricted:
-                Text("Location access is off. You can long-press the map to drop a pin instead, or enable location in Settings.")
-                    .multilineTextAlignment(.center)
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    Link("Open Settings", destination: url)
-                }
-            default:
-                ProgressView("Finding your location…")
-            }
+            Text("GBIF Nearby uses your location to show records around you.")
+                .multilineTextAlignment(.center)
+            Button("Allow location") { location.requestAuthorization() }
+                .buttonStyle(.borderedProminent)
             Spacer()
         }
         .padding(24)

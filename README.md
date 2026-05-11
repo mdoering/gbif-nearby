@@ -12,7 +12,7 @@ Five tabs share a persistent header with a radius slider (0.1–100 km, default 
 
 ## Status
 
-Design phase. See [`docs/superpowers/specs/2026-05-11-gbif-nearby-ios-app-design.md`](docs/superpowers/specs/2026-05-11-gbif-nearby-ios-app-design.md) for the full design.
+Plans 1–5 shipped: the app has a working Map, Species, Gallery, Datasets, and About tab, plus a privacy manifest and configurable radius / kingdom / distance-unit / vernacular-language settings.
 
 ## Stack
 
@@ -21,7 +21,3 @@ SwiftUI, iOS 17+, no third-party dependencies. Data from the [GBIF API](https://
 ## License
 
 [Apache License 2.0](LICENSE)
-
-## Known limitations (in development)
-
-- Manual long-press pin-drop is implemented but is currently hidden behind the location-permission prompt when permission is denied. To be fixed in a later milestone.
