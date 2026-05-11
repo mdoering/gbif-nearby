@@ -17,8 +17,10 @@ struct OccurrenceSheet: View {
 /// pushed from `ClusterPickerSheet` (one of several co-located records).
 struct OccurrenceDetailContent: View {
     let occurrence: Occurrence
+    @Environment(\.gbifClient) private var client
     @State private var showSafari = false
     @State private var selectedTile: TileSelection?
+    @State private var datasetTitle: String?
 
     private var tiles: [GalleryTile] {
         (occurrence.media ?? []).enumerated().compactMap { idx, m in
@@ -43,6 +45,7 @@ struct OccurrenceDetailContent: View {
                     if let date = occurrence.eventDate { row("Date", date) }
                     if let recorder = occurrence.recordedBy { row("Recorded by", recorder) }
                     if let basis = occurrence.basisOfRecord { row("Basis", basis) }
+                    if let title = datasetTitle { row("Dataset", title) }
                 }
                 Section {
                     Button("View on GBIF.org") { showSafari = true }
@@ -57,6 +60,14 @@ struct OccurrenceDetailContent: View {
         }
         .navigationDestination(item: $selectedTile) { sel in
             OccurrenceDetailView(tiles: tiles, startIndex: sel.index)
+        }
+        .task { await loadDatasetTitle() }
+    }
+
+    private func loadDatasetTitle() async {
+        guard let key = occurrence.datasetKey, datasetTitle == nil else { return }
+        if let ds = try? await client.dataset(key: key) {
+            datasetTitle = ds.title
         }
     }
 
