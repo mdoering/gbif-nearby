@@ -60,7 +60,7 @@ struct DatasetsTabView: View {
                 List {
                     ForEach(items) { item in
                         NavigationLink {
-                            DatasetDetailViewStub(item: item)
+                            DatasetDetailView(item: item)
                         } label: {
                             DatasetRow(item: item)
                         }
@@ -117,12 +117,3 @@ struct DatasetsTabView: View {
     }
 }
 
-// Temporary stub — replaced in Task 8.
-private struct DatasetDetailViewStub: View {
-    let item: DatasetRowItem
-    var body: some View {
-        Text("Detail for \(item.title ?? item.key) (coming in Task 8)")
-            .navigationTitle("Dataset")
-            .navigationBarTitleDisplayMode(.inline)
-    }
-}
