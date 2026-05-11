@@ -19,7 +19,7 @@ struct FacetBucket: Codable, Sendable {
     let count: Int
 }
 
-struct Occurrence: Codable, Sendable, Identifiable {
+struct Occurrence: Codable, Sendable, Identifiable, Equatable {
     let key: Int
     let datasetKey: String?
     let speciesKey: Int?
@@ -42,7 +42,7 @@ struct Occurrence: Codable, Sendable, Identifiable {
     var id: Int { key }
 }
 
-struct Media: Codable, Sendable {
+struct Media: Codable, Sendable, Equatable {
     let type: String?
     let format: String?
     let identifier: String?
