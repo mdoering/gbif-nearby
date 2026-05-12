@@ -1,0 +1,6 @@
+title: GBIF Nearby
+description: Discover the biodiversity around you.
+theme: jekyll-theme-hacker
+
+exclude:
+  - superpowers/
