@@ -18,6 +18,10 @@ Plans 1–5 shipped: the app has a working Map, Species, Gallery, Datasets, and 
 
 SwiftUI, iOS 17+, no third-party dependencies. Data from the [GBIF API](https://techdocs.gbif.org/en/openapi/).
 
+## Privacy
+
+GBIF Nearby uses your location only to ask the public GBIF API what species have been recorded around you. There are no user accounts, no analytics, no advertising SDKs, no tracking. Settings (radius, units, language, kingdom filter) are stored locally on your device. See [docs/PRIVACY.md](docs/PRIVACY.md) for the full statement.
+
 ## License
 
 [Apache License 2.0](LICENSE)
